@@ -4,14 +4,17 @@ import { Focus, Minus, Plus, Scan, Trash2 } from 'lucide-vue-next'
 
 import type { ImageSource } from '../types/media'
 
-type BoardImage = ImageSource & { id: number; x: number; y: number; width: number; height: number; ready: boolean; failed: boolean; layer: number }
+type PlacementPreview = { src: string; width: number; height: number }
+type BoardImage = ImageSource & { id: number; x: number; y: number; width: number; height: number; ready: boolean; failed: boolean; layer: number; previewSrc?: string; fixedSize: boolean }
 type Gesture = { type: 'pan' | 'move' | 'resize'; pointerId: number; clientX: number; clientY: number; x: number; y: number; width: number; height: number; item?: BoardImage }
 const props = defineProps<{ active: boolean; dragPoint: { x: number; y: number } | null }>()
+const emit = defineEmits<{ presented: [id: number] }>()
 const stage = ref<HTMLElement>()
 const items = ref<BoardImage[]>([])
 const selectedId = ref<number | null>(null)
 const selected = computed(() => items.value.find(item => item.id === selectedId.value))
 const camera = ref({ x: 0, y: 0, zoom: 1 })
+const cameraZoom = computed(() => camera.value.zoom)
 const viewport = ref({ width: 1, height: 1 })
 const spaceHeld = ref(false)
 const interacting = ref(false)
@@ -29,33 +32,74 @@ function screenToWorld(clientX: number, clientY: number) {
   const bounds = stage.value?.getBoundingClientRect()
   return { x: (clientX - (bounds?.left ?? 0) - camera.value.x) / camera.value.zoom, y: (clientY - (bounds?.top ?? 0) - camera.value.y) / camera.value.zoom }
 }
+function getImageRect(id: number) {
+  const item = items.value.find(item => item.id === id)
+  const bounds = stage.value?.getBoundingClientRect()
+  if (!item || !bounds) return
+  return { x: bounds.left + camera.value.x + (item.x + item.width / 2) * camera.value.zoom, y: bounds.top + camera.value.y + (item.y + item.height / 2) * camera.value.zoom, width: item.width * camera.value.zoom, height: item.height * camera.value.zoom }
+}
 function activate(item: BoardImage) {
   selectedId.value = item.id
   item.layer = ++topLayer
 }
-function addImage(image: ImageSource, point?: { x: number; y: number }) {
+function getImageWorldSize(naturalWidth = 0, naturalHeight = 0) {
   const bounds = stage.value?.getBoundingClientRect()
-  if (!bounds || !bounds.width || !bounds.height) return
+  if (!bounds?.width || !bounds.height) return
+  const width = Math.min(320, bounds.width * .65)
+  const height = Math.min(280, bounds.height * .65)
+  if (naturalWidth <= 0 || naturalHeight <= 0) return { width, height }
+  const ratio = Math.min(width / naturalWidth, height / naturalHeight)
+  return { width: naturalWidth * ratio, height: naturalHeight * ratio }
+}
+function addImage(image: ImageSource, point?: { x: number; y: number }, preview?: PlacementPreview) {
+  const bounds = stage.value?.getBoundingClientRect()
+  const size = preview ?? getImageWorldSize()
+  if (!bounds || !size || !bounds.width || !bounds.height) return
   const center = point ?? screenToWorld(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2)
   const offset = point ? 0 : (items.value.length % 6) * 24 / camera.value.zoom
-  const width = Math.min(320, bounds.width * .65) / camera.value.zoom
-  const height = Math.min(280, bounds.height * .65) / camera.value.zoom
-  const item: BoardImage = { ...image, id: ++sequence, x: center.x - width / 2 + offset, y: center.y - height / 2 + offset, width, height, ready: false, failed: false, layer: ++topLayer }
+  const { width, height } = size
+  const item: BoardImage = { ...image, id: ++sequence, x: center.x - width / 2 + offset, y: center.y - height / 2 + offset, width, height, ready: false, failed: false, layer: ++topLayer, previewSrc: preview?.src, fixedSize: !!preview }
   items.value.push(item)
   selectedId.value = item.id
   notice.value = `已添加 ${image.name}`
   stage.value?.focus({ preventScroll: true })
+  return item.id
 }
-function loaded(item: BoardImage, event: Event) {
+async function previewLoaded(item: BoardImage, event: Event) {
+  try {
+    await (event.target as HTMLImageElement).decode()
+  } catch {
+    item.previewSrc = undefined
+  }
+  emit('presented', item.id)
+}
+function previewFailed(item: BoardImage) {
+  item.previewSrc = undefined
+  emit('presented', item.id)
+}
+function imageFailed(item: BoardImage) {
+  item.failed = true
+  if (!item.previewSrc) emit('presented', item.id)
+}
+async function loaded(item: BoardImage, event: Event) {
   const image = event.target as HTMLImageElement
-  const ratio = Math.min(item.width / image.naturalWidth, item.height / image.naturalHeight)
-  const width = image.naturalWidth * ratio
-  const height = image.naturalHeight * ratio
-  item.x += (item.width - width) / 2
-  item.y += (item.height - height) / 2
-  item.width = width
-  item.height = height
+  try {
+    await image.decode()
+  } catch {
+    imageFailed(item)
+    return
+  }
+  if (!item.fixedSize) {
+    const ratio = Math.min(item.width / image.naturalWidth, item.height / image.naturalHeight)
+    const width = image.naturalWidth * ratio
+    const height = image.naturalHeight * ratio
+    item.x += (item.width - width) / 2
+    item.y += (item.height - height) / 2
+    item.width = width
+    item.height = height
+  }
   item.ready = true
+  emit('presented', item.id)
 }
 function changeCameraZoom(factor: number, anchor = { x: viewport.value.width / 2, y: viewport.value.height / 2 }) {
   if (gesture) return
@@ -97,6 +141,7 @@ function scaleImage(factor: number) {
 }
 function removeSelected() {
   if (!selected.value) return
+  emit('presented', selected.value.id)
   notice.value = `已从画板移除 ${selected.value.name}，原文件未删除`
   items.value = items.value.filter(item => item.id !== selectedId.value)
   selectedId.value = null
@@ -151,9 +196,9 @@ function containsPoint(clientX: number, clientY: number) {
   const bounds = stage.value?.getBoundingClientRect()
   return !!(props.active && bounds && bounds.width > 0 && bounds.height > 0 && clientX >= bounds.left && clientX <= bounds.right && clientY >= bounds.top && clientY <= bounds.bottom)
 }
-function addImageAt(image: ImageSource, clientX: number, clientY: number) {
+function addImageAt(image: ImageSource, clientX: number, clientY: number, preview?: PlacementPreview) {
   if (!containsPoint(clientX, clientY)) return
-  addImage(image, screenToWorld(clientX, clientY))
+  return addImage(image, screenToWorld(clientX, clientY), preview)
 }
 function keydown(event: KeyboardEvent) {
   if (!props.active || event.altKey || event.ctrlKey || event.metaKey) return
@@ -176,7 +221,7 @@ function keyup(event: KeyboardEvent) {
 }
 function focus() { stage.value?.focus({ preventScroll: true }) }
 watch(() => props.active, active => { if (!active) resetInput() })
-defineExpose({ addImage, addImageAt, keydown, keyup, selectedPath, focus })
+defineExpose({ addImage, addImageAt, getImageWorldSize, getImageRect, cameraZoom, keydown, keyup, selectedPath, focus })
 onMounted(() => {
   observer = new ResizeObserver(([entry]) => {
     if (!entry.contentRect.width || !entry.contentRect.height) return
@@ -206,8 +251,9 @@ onBeforeUnmount(() => {
     <div ref="stage" class="board-stage" :class="{ panning: spaceHeld, interacting, 'drop-over': dropOver }" tabindex="0" aria-label="画板。拖动图片移动，右下角缩放；拖动空白处平移，滚轮缩放视野。" @pointerdown="startGesture($event, 'pan')" @pointermove="moveGesture" @pointerup="endGesture" @pointercancel="endGesture" @lostpointercapture="endGesture" @wheel.prevent="wheel">
       <div class="board-world" :style="worldStyle">
         <div v-for="item in items" :key="item.id" class="board-image" :class="{ selected: item.id === selectedId, failed: item.failed }" :style="{ left: `${item.x}px`, top: `${item.y}px`, width: `${item.width}px`, height: `${item.height}px`, zIndex: item.layer, outlineWidth: `${1.5 / camera.zoom}px` }" @pointerdown.stop="startGesture($event, 'move', item)">
-          <img :src="item.src" :alt="item.name" :draggable="false" v-show="item.ready" @load="loaded(item, $event)" @error="item.failed = true" />
-          <span v-if="!item.ready" class="board-image-status">{{ item.failed ? '无法显示此图片' : '加载中…' }}</span>
+          <img v-if="item.previewSrc && !item.ready" class="board-image-preview" :src="item.previewSrc" alt="" :draggable="false" @load="previewLoaded(item, $event)" @error="previewFailed(item)" />
+          <img :src="item.src" :alt="item.name" :draggable="false" v-show="item.ready" @load="loaded(item, $event)" @error="imageFailed(item)" />
+          <span v-if="!item.ready && (!item.previewSrc || item.failed)" class="board-image-status" :class="{ 'over-preview': !!item.previewSrc }">{{ item.failed ? '无法显示此图片' : '加载中…' }}</span>
           <template v-if="item.id === selectedId">
             <span class="board-image-label" :style="selectionStyle">{{ item.name }}</span>
             <button v-if="item.ready" class="board-resize" :style="selectionStyle" title="拖动以等比缩放" aria-label="拖动以缩放图片，也可使用工具栏缩放按钮" tabindex="-1" @pointerdown.stop="startGesture($event, 'resize', item)"></button>
@@ -249,8 +295,9 @@ button:focus-visible { outline: 2px solid #ff9aaa; outline-offset: -2px; }
 .board-world { position: absolute; top: 0; left: 0; width: 0; height: 0; transform-origin: 0 0; }
 .board-image { position: absolute; cursor: move; background: #303036; outline: solid transparent; }
 .board-image.selected { outline-color: #ff9aaa; }
-.board-image img { width: 100%; height: 100%; max-width: none; object-fit: contain; pointer-events: none; }
+.board-image img { display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; pointer-events: none; }
 .board-image-status { display: grid; place-items: center; height: 100%; font-size: 12px; color: #d4c8cf; }
+.board-image-status.over-preview { position: absolute; inset: auto 0 0; height: auto; padding: 6px; background: #303036; }
 .board-image-label { position: absolute; left: 0; bottom: calc(100% + 4px); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 6px; border-radius: 3px; background: #57434b; color: #ffe9ee; font-size: 11px; line-height: 18px; transform-origin: left bottom; pointer-events: none; }
 .board-resize { position: absolute; right: -12px; bottom: -12px; width: 24px; height: 24px; min-width: 24px; padding: 0; cursor: nwse-resize; border-radius: 0; transform-origin: center; }
 .board-resize::after { content: ''; width: 10px; height: 10px; background: #ffb4c1; border: 1px solid #573642; }
