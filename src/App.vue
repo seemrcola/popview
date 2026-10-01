@@ -10,9 +10,12 @@ import appIcon from '../src-tauri/icons/popview-icon.svg'
 import { expandWindow, imageSource } from './services/media'
 import { useDirectoryBrowser } from './composables/useDirectoryBrowser'
 import { useFolderPreviews } from './composables/useFolderPreviews'
+import { useButtonFeedback } from './composables/useButtonFeedback'
+import './styles/buttons.css'
 import type { ImageItem } from './types/media'
 
 const browser = useDirectoryBrowser()
+useButtonFeedback()
 const { rootPath, selectedPath, nodes, visibleNodes, currentEntries, currentLabel, breadcrumbs, isLoading, viewVersion } = browser
 const { imagesFor, setVisible } = useFolderPreviews(browser)
 const query = ref('')
@@ -79,7 +82,7 @@ function selectFolder(path: string) {
           </div>
           <div class="media-actions">
             <label v-if="images.length" class="search-box"><Search :size="15" /><input v-model="query" aria-label="搜索图片" placeholder="搜索图片" /></label>
-            <div class="view-switch" role="group" aria-label="显示方式">
+            <div class="view-switch" :data-mode="viewMode" role="group" aria-label="显示方式">
               <button class="icon-button" :class="{ active: viewMode === 'grid' }" :aria-pressed="viewMode === 'grid'" title="网格" aria-label="网格视图" @click="viewMode = 'grid'"><Grid2X2 :size="15" /></button>
               <button class="icon-button" :class="{ active: viewMode === 'list' }" :aria-pressed="viewMode === 'list'" title="列表" aria-label="列表视图" @click="viewMode = 'list'"><List :size="15" /></button>
             </div>

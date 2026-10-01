@@ -58,5 +58,12 @@ onBeforeUnmount(() => observer?.disconnect())
 .strip-items :deep(button:hover) { background: #3e3a42; }
 .strip-items :deep(button:focus-visible) { outline: 2px solid #ff9aaa; outline-offset: 2px; }
 .strip-items :deep(button.selected) { border-color: #ff9aaa; background: #57434b; }
+.strip-items :deep(button) { transition: transform var(--motion-settle) var(--ease-spring), border-color var(--motion-fast) ease, background var(--motion-fast) ease; }
+.strip-items :deep(button.selected) { transform: translateY(-2px); }
+.strip-items :deep(button:active) { transform: scale(.96); transition-duration: 80ms; }
 .strip-items :deep(img) { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain; border-radius: 4px; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .strip-items :deep(button) { transition: none; }
+  .strip-items :deep(button.selected), .strip-items :deep(button:active) { transform: none; }
+}
 </style>

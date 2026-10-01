@@ -46,8 +46,11 @@ onBeforeUnmount(() => {
 .image-viewer { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #202025; color: #f6f3ef; }
 .image-viewer[open] { display: flex; flex-direction: column; }
 .image-viewer::backdrop { background: #202025; }
+.image-viewer[open] { animation: preview-arrive 180ms var(--ease-out); }
+@keyframes preview-arrive { from { opacity: .65; } to { opacity: 1; } }
 .viewer-modes { display: flex; flex-shrink: 0; gap: 2px; padding: 3px; border-radius: 8px; background: #303036; }
 .viewer-modes button { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; font-size: 12px; border-radius: 5px; color: #c5bec7; }
 .viewer-modes button.active { background: #57434b; color: #ffe9ee; }
 @media (max-width: 650px) { .viewer-modes button { padding-inline: 8px; } }
+@media (prefers-reduced-motion: reduce) { .image-viewer[open] { animation: none; } }
 </style>

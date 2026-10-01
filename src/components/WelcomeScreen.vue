@@ -68,25 +68,27 @@ const emit = defineEmits<{ choose: [] }>()
 .welcome-art { width: 100%; height: auto; overflow: visible; flex-shrink: 0; }
 .welcome-action { display: flex; align-items: center; justify-content: space-between; width: 206px; max-width: 100%; min-height: 46px; padding: 0 16px; border: 1px solid var(--ink); border-radius: 5px; background: var(--yellow); color: var(--ink); font-size: 14px; font-weight: 500; transition: background 180ms ease, transform 180ms ease; }
 .welcome-launch:hover:not(:disabled) .welcome-action { background: var(--accent-soft); }
-.welcome-launch:active:not(:disabled) .welcome-action { transform: translateY(1px); }
 .welcome-launch:focus-visible { outline: none; }
 .welcome-launch:focus-visible .welcome-action { outline: 2px solid var(--accent); outline-offset: 5px; }
-.print { transition: transform 420ms cubic-bezier(.22,1,.36,1); }
+.print { transition: transform var(--motion-settle) var(--ease-spring); }
 .print-left { transform: rotate(-13deg); transform-origin: 112px 167px; }
 .print-right { transform: rotate(12deg); transform-origin: 159px 160px; }
 .print-front { transform: rotate(-3deg); transform-origin: 135px 180px; }
-.print-drift { animation: print-float 5s ease-in-out infinite; }
-.welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-left { transform: translate(-7px, -10px) rotate(-20deg); }
-.welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-right { transform: translate(8px, -13px) rotate(19deg); }
-.welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-front { transform: translateY(-17px) rotate(2deg); }
-.welcome-launch:disabled .print-drift { animation-play-state: paused; }
+.welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-left { transform: translate(-4px, -6px) rotate(-17deg); }
+.welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-right { transform: translate(5px, -8px) rotate(16deg); }
+.welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-front { transform: translateY(-11px) rotate(-1deg); }
+.welcome-action { transition: background var(--motion-fast) ease, transform var(--motion-settle) var(--ease-spring); }
+.welcome-action > svg:not(.welcome-loading) { transition: transform var(--motion-settle) var(--ease-spring); }
+.welcome-launch:is(:hover, :focus-visible):not(:disabled) .welcome-action > svg:not(.welcome-loading) { transform: translate(2px, -2px); }
+.welcome-launch:active:not(:disabled) .welcome-action { transform: translateY(1px) scale(.97); transition-duration: 80ms; }
 .welcome-loading { animation: welcome-spin 1s linear infinite; }
 .welcome-error { width: 100%; max-width: 360px; margin: 20px 0 0; color: #963849; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; text-align: center; }
-@keyframes print-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes welcome-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .print-drift, .welcome-loading { animation: none; }
+  .welcome-loading { animation: none; }
   .print, .welcome-action { transition: none; }
+  .welcome-action > svg:not(.welcome-loading) { transition: none; }
+  .welcome-launch:is(:hover, :focus-visible):not(:disabled) .welcome-action > svg:not(.welcome-loading) { transform: none; }
   .welcome-launch:active:not(:disabled) .welcome-action { transform: none; }
   .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-left { transform: rotate(-13deg); }
   .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-right { transform: rotate(12deg); }

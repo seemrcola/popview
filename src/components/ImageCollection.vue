@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, FileImage } from 'lucide-vue-next'
 import FolderCard from './FolderCard.vue'
 import FolderIcon from './FolderIcon.vue'
 import ImageThumbnail from './ImageThumbnail.vue'
+import { useCollectionMotion } from '../composables/useCollectionMotion'
 import type { DirectoryEntry, ImageItem, ImageSource } from '../types/media'
 
 const props = defineProps<{
@@ -21,6 +22,7 @@ const emit = defineEmits<{
 const PAGE_SIZE = 120
 const page = ref(0)
 const scroll = ref<HTMLElement>()
+useCollectionMotion(scroll, () => [props.version, props.viewMode, page.value])
 const pageCount = computed(() => Math.max(1, Math.ceil((props.folders.length + props.images.length) / PAGE_SIZE)))
 const pageFolders = computed(() => props.folders.slice(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE))
 const pageImages = computed(() => props.images.slice(Math.max(0, page.value * PAGE_SIZE - props.folders.length), Math.max(0, (page.value + 1) * PAGE_SIZE - props.folders.length)))
@@ -89,6 +91,9 @@ watch(() => [props.version, props.images, props.folders], () => {
 .media-name { padding: 12px 12px 0; overflow: hidden; font-size: 13px; line-height: 20px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .media-meta { padding: 3px 12px 12px; color: var(--ink-muted); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }
 .media-item:active .media-meta { color: var(--ink); }
+.media-preview { transition: transform var(--motion-settle) var(--ease-spring); }
+.media-item:active .media-preview { transform: scale(.98); transition-duration: 80ms; }
+.media-item:focus-visible { outline-offset: -2px; }
 .media-list { display: flex; flex-direction: column; gap: 0; }
 .list-item { width: 100%; min-height: 68px; display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-bottom: 1px solid var(--line); border-radius: 0; }
 .list-item:last-child { border-bottom: 0; }
@@ -116,5 +121,7 @@ watch(() => [props.version, props.images, props.folders], () => {
 }
 @media (prefers-reduced-motion: reduce) {
   .media-item, .collection-pages button { transition: none; }
+  .media-preview { transition: none; }
+  .media-item:active .media-preview { transform: none; }
 }
 </style>

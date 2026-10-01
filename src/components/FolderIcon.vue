@@ -36,7 +36,7 @@ const id = useId()
 .folder-icon { position: relative; display: block; width: 100%; height: 100%; isolation: isolate; filter: drop-shadow(var(--folder-shadow, 0 4px 3px #236c9626)); transition: filter 240ms cubic-bezier(.22, 1, .36, 1); }
 .folder-back, .folder-front { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .folder-back { z-index: 0; }
-.folder-front { z-index: 2; transform-origin: 50% 92%; transform: perspective(500px) rotateX(var(--folder-tilt, 0deg)); transition: transform 240ms cubic-bezier(.22, 1, .36, 1); }
+.folder-front { z-index: 2; transform-origin: 50% 92%; transform: perspective(500px) rotateX(var(--folder-tilt, 0deg)); transition: transform var(--motion-settle) var(--ease-spring); }
 @media (prefers-reduced-motion: reduce) {
   .folder-icon, .folder-front { transition: none; }
   .folder-front { transform: none; }
