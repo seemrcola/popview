@@ -27,31 +27,34 @@ onBeforeUnmount(() => {
 
 <template>
   <button ref="card" class="folder-card" :title="folder.name" @click="emit('select', folder.path)">
-    <div class="folder-art">
-      <FolderIcon :open="images.length > 0">
-        <div class="folder-photos">
-          <img v-for="image in images" :key="image.path" :src="image.thumbnailSrc" alt="" loading="lazy" decoding="async" @error="failedImages.add(image.thumbnailSrc)" />
-        </div>
-      </FolderIcon>
+    <div class="folder-visual">
+      <div class="folder-art">
+        <FolderIcon :open="images.length > 0">
+          <div class="folder-photos">
+            <img v-for="image in images" :key="image.path" :src="image.thumbnailSrc" alt="" loading="lazy" decoding="async" @error="failedImages.add(image.thumbnailSrc)" />
+          </div>
+        </FolderIcon>
+      </div>
     </div>
     <div class="folder-copy"><strong>{{ folder.name }}</strong></div>
   </button>
 </template>
 
 <style scoped>
-.folder-card { min-width: 0; min-height: 178px; padding: 4px 0 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; border-radius: 12px; background: transparent; color: var(--ink); text-align: center; transition: background 180ms ease; }
-.folder-card:is(:hover, :focus-visible) { background: #fff1bd; --folder-tilt: -12deg; --folder-shadow: 0 8px 7px #236c9633; }
-.folder-art { width: 150px; height: 135px; flex: 0 0 135px; transition: transform var(--motion-settle) var(--ease-spring); }
+.folder-card { min-width: 0; padding: var(--space-3) var(--space-2); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); border: 0; border-radius: var(--radius-media); background: transparent; color: var(--ink); text-align: center; transition: background 180ms ease; }
+.folder-card:is(:hover, :focus-visible) { background: var(--content-hover); --folder-tilt: -12deg; --folder-shadow: 0 8px 7px #236c9633; }
+.folder-visual { width: 100%; height: calc(var(--folder-art-width) * .9); display: grid; place-items: center; }
+.folder-art { width: var(--folder-art-width); height: 100%; flex-shrink: 0; transition: transform var(--motion-settle) var(--ease-spring); }
 .folder-photos { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.folder-photos img { --photo-rest: translate(-9px, 2px) rotate(-8deg); --photo-hover: translate(-13px, -4px) rotate(-12deg); position: absolute; width: 72px; height: 76px; left: 39px; top: 27px; object-fit: contain; padding: 3px; border: 1px solid #c8dce7; border-radius: 4px; background: #fff; box-shadow: 0 2px 5px #184f7226; transform: var(--photo-rest); transition: transform 240ms cubic-bezier(.22, 1, .36, 1); }
+.folder-photos img { --photo-rest: translate(-9px, 2px) rotate(-8deg); --photo-hover: translate(-13px, -4px) rotate(-12deg); position: absolute; width: 48%; height: 56.3%; left: 26%; top: 20%; object-fit: contain; padding: 3px; border: 1px solid #c8dce7; border-radius: 4px; background: #fff; box-shadow: 0 2px 5px #184f7226; transform: var(--photo-rest); transition: transform 240ms cubic-bezier(.22, 1, .36, 1); }
 .folder-photos img:nth-child(2) { --photo-rest: translate(11px, -5px) rotate(8deg); --photo-hover: translate(15px, -10px) rotate(12deg); }
 .folder-photos img:nth-child(3) { --photo-rest: translate(0, 1px) rotate(-2deg); --photo-hover: translate(0, -5px) rotate(-1deg); }
 .folder-card:is(:hover, :focus-visible) .folder-photos img { transform: var(--photo-hover); }
 .folder-photos img { transition: transform var(--motion-settle) var(--ease-spring); }
 .folder-photos img:nth-child(2) { transition-delay: 18ms; }
 .folder-photos img:nth-child(3) { transition-delay: 32ms; }
-.folder-copy { min-width: 0; width: 100%; }
-.folder-copy strong { display: block; padding: 3px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: 13px; line-height: 20px; font-weight: 600; }
+.folder-copy { min-width: 0; width: 100%; text-align: center; }
+.folder-copy strong { display: block; overflow: hidden; font-size: var(--font-label); line-height: 20px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
 .folder-card:is(:hover, :focus-visible) .folder-art { transform: translateY(-2px) scale(1.01); }
 .folder-card:active .folder-art { transform: translateY(-1px) scale(.99); transition-duration: 100ms; }
 @media (prefers-reduced-motion: reduce) {

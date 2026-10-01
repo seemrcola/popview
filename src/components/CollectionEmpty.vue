@@ -27,14 +27,14 @@ const label = computed(() => ({ loading: '加载中…', error: '读取失败', 
 </template>
 
 <style scoped>
-.collection-empty { min-height: 0; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 32px 24px; overflow-y: auto; text-align: center; animation: empty-arrive 180ms var(--ease-out); }
+.collection-empty { min-height: 0; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: var(--space-8) var(--content-inset); overflow-y: auto; text-align: center; animation: empty-arrive 180ms var(--ease-out); }
 .empty-symbol { width: 104px; height: 96px; flex-shrink: 0; cursor: default; }
 .empty-art { position: relative; width: 104px; height: 96px; transition: transform var(--motion-settle) var(--ease-spring); }
-.empty-photo { position: absolute; z-index: 1; left: 33px; top: 18px; width: 40px; height: 45px; display: grid; place-items: center; border: 1px solid #c2d8dd; border-radius: 5px; background: #fffdf8; color: #72978c; transform: rotate(-7deg); transform-origin: 50% 90%; transition: transform var(--motion-settle) var(--ease-spring); }
-.empty-badge { position: absolute; z-index: 3; right: -2px; bottom: 1px; width: 36px; height: 36px; display: grid; place-items: center; border: 3px solid var(--surface); border-radius: 50%; background: var(--mint); color: #3f6356; transition: transform var(--motion-settle) var(--ease-spring); }
-.error .empty-badge { background: #fbe9eb; color: #963849; }
+.empty-photo { position: absolute; z-index: 1; left: 33px; top: 18px; width: 40px; height: 45px; display: grid; place-items: center; border: 1px solid #c2d8dd; border-radius: 5px; background: var(--surface); color: #72978c; transform: rotate(-7deg); transform-origin: 50% 90%; transition: transform var(--motion-settle) var(--ease-spring); }
+.empty-badge { position: absolute; z-index: 3; right: -2px; bottom: 1px; width: 36px; height: 36px; display: grid; place-items: center; border: 3px solid var(--surface); border-radius: 50%; background: var(--mint); color: var(--nav-ink); transition: transform var(--motion-settle) var(--ease-spring); }
+.error .empty-badge { background: var(--error-surface); color: var(--error-ink); }
 .loading .empty-badge { background: var(--surface-subtle); color: var(--ink-muted); }
-.empty-label { margin: 0; color: var(--ink-muted); font-size: 13px; line-height: 1.6; }
+.empty-label { margin: 0; color: var(--ink-muted); font-size: var(--font-label); line-height: 1.6; }
 @media (hover: hover) and (pointer: fine) {
   .empty-symbol:hover { --folder-tilt: -12deg; }
   .empty-symbol:hover .empty-photo { transform: translateY(-7px) rotate(3deg); }

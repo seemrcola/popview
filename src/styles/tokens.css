@@ -1,0 +1,79 @@
+:root {
+  --surface: #fffdf8;
+  --surface-subtle: #f5f2eb;
+  --ink: #242128;
+  --ink-muted: #736b6e;
+  --line: #e4ded5;
+  --accent: #973f57;
+  --accent-soft: #f6dce4;
+  --accent-line: #d5adb7;
+  --mint: #e5f0e8;
+  --yellow: #ffe3a0;
+  --nav-hover: #d9e9df;
+  --nav-ink: #3f5142;
+  --nav-muted: #596b5c;
+  --nav-line: #becfc3;
+  --nav-scrollbar: #8ba493;
+  --action-hover: #ffda86;
+  --action-pressed: #f5ce72;
+  --action-line: #d6b568;
+  --content-hover: #faf0d5;
+  --content-pressed: #f3e4bf;
+  --surface-hover: #f0ece4;
+  --scrollbar: #b8ada1;
+  --error-surface: #fbe9eb;
+  --error-ink: #872e3b;
+  --folder-surface: #edf4f7;
+  --viewer-surface: #202025;
+  --viewer-canvas: #242429;
+  --viewer-toolbar: #28282e;
+  --viewer-raised: #303036;
+  --viewer-hover: #3e3a42;
+  --viewer-ink: #f6f3ef;
+  --viewer-muted: #c5bec7;
+  --viewer-line: #3e3d44;
+  --viewer-selected: #57434b;
+  --viewer-selected-ink: #ffe9ee;
+  --viewer-accent: #ffb4c1;
+  --viewer-scrollbar: #6d626d;
+  --viewer-grid: #49434b;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --sidebar-width: 252px;
+  --sidebar-inset: var(--space-4);
+  --content-inset: var(--space-6);
+  --titlebar-height: 56px;
+  --toolbar-height: 72px;
+  --control-size: 36px;
+  --radius-control: 8px;
+  --radius-media: 12px;
+  --font-title: 16px;
+  --font-label: 13px;
+  --font-meta: 12px;
+  --grid-min: 180px;
+  --grid-gap: var(--space-6);
+  --preview-ratio: 1.25;
+  --folder-art-width: 136px;
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --motion-fast: 160ms;
+  --motion-settle: 420ms;
+  --ease-spring: cubic-bezier(.2, .85, .3, 1);
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  :root { --ease-spring: linear(0, .12, .35, .58, .77, .9, .98, 1.018, 1.029, 1.025, 1.016, 1.008, 1.003, 1, 1); }
+}
+
+@media (max-width: 1000px) {
+  :root { --sidebar-width: 240px; }
+}
+
+@media (max-width: 760px) {
+  :root { --content-inset: var(--space-4); --grid-min: 150px; --grid-gap: var(--space-4); --folder-art-width: 128px; }
+}

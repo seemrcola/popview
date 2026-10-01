@@ -145,8 +145,8 @@ onBeforeUnmount(() => { observer?.disconnect() })
 .viewer-canvas { flex: 1; min-height: 0; position: relative; overflow: hidden; touch-action: none; cursor: grab; display: flex; align-items: center; justify-content: center; }
 .viewer-canvas.dragging { cursor: grabbing; }
 .viewer-canvas img { flex: none; max-width: none; max-height: none; object-fit: contain; user-select: none; pointer-events: none; }
-.viewer-message { color: #c5bec7; font-size: 14px; }
-.viewer-arrow { position: absolute; top: 50%; background: #343239; border-color: #514b56; }
+.viewer-message { color: var(--viewer-muted); font-size: 14px; }
+.viewer-arrow { position: absolute; top: 50%; background: var(--viewer-raised); border-color: #514b56; }
 .previous { left: 16px; }.next { right: 16px; }
-.viewer-canvas:focus-visible { outline: 1px solid #9b7586; outline-offset: -1px; }
+.viewer-canvas:focus-visible { outline: 1px solid var(--viewer-accent); outline-offset: -1px; }
 </style>

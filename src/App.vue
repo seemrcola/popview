@@ -16,7 +16,7 @@ import type { ImageItem } from './types/media'
 
 const browser = useDirectoryBrowser()
 useButtonFeedback()
-const { rootPath, selectedPath, nodes, visibleNodes, currentEntries, currentLabel, breadcrumbs, isLoading, viewVersion } = browser
+const { rootPath, selectedPath, nodes, visibleNodes, currentEntries, breadcrumbs, isLoading, viewVersion } = browser
 const { imagesFor, setVisible } = useFolderPreviews(browser)
 const query = ref('')
 const viewMode = ref<'grid' | 'list'>('grid')
@@ -62,7 +62,7 @@ function selectFolder(path: string) {
   <WelcomeScreen v-if="!rootPath" :busy="isChoosing" :error="scanError" @choose="chooseFolder" />
   <main v-else class="app-shell">
     <header class="app-toolbar" data-tauri-drag-region>
-      <div class="app-title"><img class="brand-icon" :src="appIcon" alt="" /><div><strong>PopView</strong><span>{{ currentLabel }}</span></div></div>
+      <div class="app-title"><img class="brand-icon" :src="appIcon" alt="" /><div><strong>PopView</strong></div></div>
     </header>
     <div class="app-body">
       <aside class="file-sidebar">

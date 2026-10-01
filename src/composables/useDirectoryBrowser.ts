@@ -49,7 +49,6 @@ export function useDirectoryBrowser() {
     return result
   })
   const currentEntries = computed<readonly DirectoryEntry[]>(() => readonly(directories.value[selectedPath.value]?.entries ?? []))
-  const currentLabel = computed(() => nodes.value[selectedPath.value]?.name ?? '未选择文件夹')
   const isLoading = computed(() => directories.value[targetPath.value]?.loading ?? false)
   const error = computed(() => {
     const path = targetPath.value
@@ -167,7 +166,7 @@ export function useDirectoryBrowser() {
 
   return {
     session: readonly(session), viewVersion: readonly(viewVersion), getDirectory,
-    rootPath: readonly(rootPath), selectedPath: readonly(selectedPath), nodes, visibleNodes, currentEntries, currentLabel,
+    rootPath: readonly(rootPath), selectedPath: readonly(selectedPath), nodes, visibleNodes, currentEntries,
     breadcrumbs, isLoading, error, openRoot, selectDirectory, toggleDirectory,
   }
 }

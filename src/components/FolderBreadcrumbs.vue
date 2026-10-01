@@ -57,22 +57,29 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .folder-breadcrumbs { min-width: 0; width: 100%; }
-.folder-breadcrumbs ol { display: flex; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.folder-breadcrumbs li { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 0 1 auto; }
+.folder-breadcrumbs ol { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.folder-breadcrumbs li { display: flex; align-items: center; gap: var(--space-2); min-width: 0; flex: 0 1 auto; }
 .folder-breadcrumbs li.overflow { flex: 0 0 auto; }
-.folder-breadcrumbs .separator { flex: 0 0 12px; color: #9b9298; }
-.folder-breadcrumbs .crumb-name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px; border: 0; border-radius: 5px; background: transparent; color: var(--ink-muted); font-size: 13px; line-height: 22px; text-align: left; }
-.folder-breadcrumbs .current .crumb-name { color: var(--ink); font-size: 15px; font-weight: 600; }
-.folder-breadcrumbs button:hover, .folder-breadcrumbs summary:hover, .folder-breadcrumbs details[open] summary { background: #f0ece4; color: #27242b; }
-.folder-breadcrumbs .overflow-trigger { display: grid; place-items: center; width: 28px; height: 30px; padding: 0; border: 0; border-radius: 5px; color: #736960; background: transparent; }
+.folder-breadcrumbs .separator { flex: 0 0 12px; color: var(--ink-muted); opacity: .5; }
+.folder-breadcrumbs .crumb-name { position: relative; display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: var(--space-1) 0; border: 0; border-radius: 0; background: transparent; color: var(--ink-muted); font-size: var(--font-label); font-weight: 400; line-height: 22px; text-align: left; }
+.folder-breadcrumbs .current .crumb-name { color: var(--ink); }
+.folder-breadcrumbs button.crumb-name, .folder-breadcrumbs .overflow-trigger { transition: color var(--motion-fast) ease; }
+.folder-breadcrumbs button.crumb-name::after, .folder-breadcrumbs .overflow-trigger::after { content: ''; position: absolute; right: 0; bottom: 2px; left: 0; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform var(--motion-fast) var(--ease-out); pointer-events: none; }
+.folder-breadcrumbs button.crumb-name:hover, .folder-breadcrumbs button.crumb-name:focus-visible, .folder-breadcrumbs .overflow-trigger:hover, .folder-breadcrumbs .overflow-trigger:focus-visible, .folder-breadcrumbs details[open] .overflow-trigger { color: var(--accent); }
+.folder-breadcrumbs button.crumb-name:hover::after, .folder-breadcrumbs button.crumb-name:focus-visible::after, .folder-breadcrumbs .overflow-trigger:hover::after, .folder-breadcrumbs .overflow-trigger:focus-visible::after, .folder-breadcrumbs details[open] .overflow-trigger::after { transform: scaleX(1); }
+.folder-breadcrumbs .breadcrumb-menu-item:hover { background: var(--surface-hover); color: var(--ink); }
+.folder-breadcrumbs .overflow-trigger { position: relative; display: grid; place-items: center; width: 28px; height: 30px; padding: 0; border: 0; border-radius: 0; color: var(--ink-muted); background: transparent; }
 .folder-breadcrumbs button:focus-visible, .folder-breadcrumbs summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .folder-breadcrumbs details { position: relative; }
 .folder-breadcrumbs summary { list-style: none; cursor: pointer; }
 .folder-breadcrumbs summary::-webkit-details-marker { display: none; }
-.breadcrumb-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 50; width: 260px; max-width: calc(100vw - 48px); max-height: min(360px, 50vh); overflow-y: auto; padding: 6px; border: 1px solid #d6cec2; border-radius: 8px; background: #fffdf7; color: #27242b; box-shadow: 0 8px 24px #30271e1a; scrollbar-width: thin; scrollbar-color: #b7ada0 transparent; }
-.breadcrumb-menu-label { padding: 6px 8px 9px; font-size: 11px; color: #736960; }
+.breadcrumb-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 50; width: 260px; max-width: calc(100vw - 48px); max-height: min(360px, 50vh); overflow-y: auto; padding: 6px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); box-shadow: 0 8px 24px #30271e1a; scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }
+.breadcrumb-menu-label { padding: 6px 8px 9px; font-size: 11px; color: var(--ink-muted); }
 .breadcrumb-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 7px 8px; border: 0; border-radius: 4px; background: transparent; text-align: left; color: inherit; font-size: 12px; cursor: pointer; }
 .breadcrumb-menu-item svg { flex-shrink: 0; color: #87704b; }
-.breadcrumb-depth { min-width: 18px; color: #736960; font-size: 10px; font-variant-numeric: tabular-nums; }
+.breadcrumb-depth { min-width: 18px; color: var(--ink-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .breadcrumb-menu-name { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) {
+  .folder-breadcrumbs button.crumb-name::after, .folder-breadcrumbs .overflow-trigger::after { transition: none; }
+}
 </style>

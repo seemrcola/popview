@@ -141,7 +141,7 @@ onBeforeUnmount(deactivate)
 
 <style scoped>
 
-.thumbnail-drag-preview { position: fixed; z-index: 100; display: flex; transform: translate(-50%, -50%); background: #303036; pointer-events: none; }
+.thumbnail-drag-preview { position: fixed; z-index: 100; display: flex; transform: translate(-50%, -50%); background: var(--viewer-raised); pointer-events: none; }
 .thumbnail-drag-preview img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
 .board-thumbnail { cursor: grab; touch-action: none; user-select: none; }
 </style>

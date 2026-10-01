@@ -26,9 +26,9 @@ function treeGuides(node: DirectoryNode) {
     <div v-for="node in visibleNodes" :key="node.path" class="folder-line"
       :class="{ selected: selectedPath === node.path, 'root-folder': node.depth === 0 }" :style="{ '--depth': node.depth }">
       <span v-for="depth in treeGuides(node)" :key="depth" class="tree-guide"
-        :style="{ left: `${(depth - 1) * 20 + 17}px` }" aria-hidden="true" />
+        :style="{ left: `calc(${depth - 1} * var(--tree-indent) + var(--tree-guide-offset))` }" aria-hidden="true" />
       <span v-if="node.depth" class="tree-branch" :class="{ last: isLastSibling(node) }"
-        :style="{ left: `${(node.depth - 1) * 20 + 17}px` }" aria-hidden="true" />
+        :style="{ left: `calc(${node.depth - 1} * var(--tree-indent) + var(--tree-guide-offset))` }" aria-hidden="true" />
       <button v-if="node.children.length || !node.loaded" class="tree-disclosure"
         :aria-expanded="node.expanded" :aria-label="`${node.expanded ? '收起' : '展开'} ${node.name}`"
         :disabled="node.loading" @click="emit('toggle', node.path)">
@@ -47,21 +47,21 @@ function treeGuides(node: DirectoryNode) {
 </template>
 
 <style scoped>
-.folder-tree { min-height: 0; flex: 1; overflow: auto; padding: 14px 12px 20px; scrollbar-width: thin; scrollbar-color: #789e89 transparent; overscroll-behavior: contain; }
-.folder-line { position: relative; min-height: 40px; display: flex; align-items: center; margin-bottom: 4px; padding-left: calc(var(--depth) * 20px + 6px); min-width: calc(var(--depth) * 20px + 150px); border: 2px solid transparent; border-radius: 8px; transition: background 160ms ease; }
-.tree-disclosure, .tree-disclosure-spacer { width: 20px; height: 28px; flex: 0 0 20px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #596b5c; }
-.tree-disclosure:hover:not(:disabled) { background: #dce6da; color: #304534; }
-.folder-row { min-width: 0; flex: 1; min-height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 3px; border: 0; border-radius: 5px; background: transparent; color: #3f5142; text-align: left; font-size: 13px; }
-.folder-line:hover { background: #e5f8ec; }
+.folder-tree { --tree-indent: 20px; --tree-guide-offset: 17px; min-height: 0; flex: 1; overflow: auto; padding: var(--space-2) var(--sidebar-inset) var(--space-5); scrollbar-width: thin; scrollbar-color: var(--nav-scrollbar) transparent; overscroll-behavior: contain; }
+.folder-line { position: relative; min-height: 40px; display: flex; align-items: center; margin-bottom: 4px; padding-left: calc(var(--depth) * var(--tree-indent) + 6px); min-width: calc(var(--depth) * var(--tree-indent) + 150px); border: 2px solid transparent; border-radius: var(--radius-control); transition: background 160ms ease; }
+.tree-disclosure, .tree-disclosure-spacer { width: 20px; height: 28px; flex: 0 0 20px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--nav-muted); }
+.tree-disclosure:hover:not(:disabled) { background: var(--nav-hover); color: var(--nav-ink); }
+.folder-row { min-width: 0; flex: 1; min-height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 3px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--nav-ink); text-align: left; font-size: var(--font-label); }
+.folder-line:hover { background: var(--nav-hover); }
 .folder-line.selected { background: var(--accent-soft); }
-.folder-line.selected .folder-row { color: var(--ink); font-weight: 700; }
+.folder-line.selected .folder-row { color: var(--ink); font-weight: 600; }
 .folder-label { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .root-folder { margin-bottom: 6px; }
 .root-folder .folder-label { font-weight: 600; }
-.tree-folder-icon { flex-shrink: 0; color: #455e4c; fill: var(--yellow); }
-.folder-line.selected .tree-folder-icon { color: var(--ink); }
-.tree-guide, .tree-branch { position: absolute; top: -6px; bottom: -2px; border-left: 1px solid #8db49d; pointer-events: none; }
-.tree-branch::after { content: ''; position: absolute; top: 25px; width: 10px; border-top: 1px solid #8db49d; }
+.tree-folder-icon { flex-shrink: 0; color: var(--nav-muted); fill: var(--yellow); }
+.folder-line.selected .tree-folder-icon { color: var(--accent); fill: var(--accent-soft); }
+.tree-guide, .tree-branch { position: absolute; top: -6px; bottom: -2px; border-left: 1px solid var(--nav-line); pointer-events: none; }
+.tree-branch::after { content: ''; position: absolute; top: 25px; width: 10px; border-top: 1px solid var(--nav-line); }
 .tree-branch.last { bottom: 50%; }
 .folder-row:focus-visible, .tree-disclosure:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 @media (prefers-reduced-motion: reduce) { .folder-line { transition: none; } }

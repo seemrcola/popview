@@ -51,13 +51,13 @@ onBeforeUnmount(() => observer?.disconnect())
 </template>
 
 <style scoped>
-.thumbnail-strip { overflow-x: auto; padding: 12px 22px; scrollbar-width: thin; scrollbar-color: #6d626d #202025; }
+.thumbnail-strip { overflow-x: auto; padding: var(--space-3) var(--content-inset); scrollbar-width: thin; scrollbar-color: var(--viewer-scrollbar) var(--viewer-surface); }
 .strip-track { position: relative; height: 46px; }
 .strip-items { position: absolute; display: flex; gap: 8px; }
-.strip-items :deep(button) { display: flex; align-items: center; justify-content: center; flex: 0 0 60px; width: 60px; height: 46px; padding: 3px; overflow: hidden; border: 1px solid transparent; border-radius: 8px; background: #343239; color: inherit; }
-.strip-items :deep(button:hover) { background: #3e3a42; }
-.strip-items :deep(button:focus-visible) { outline: 2px solid #ff9aaa; outline-offset: 2px; }
-.strip-items :deep(button.selected) { border-color: #ff9aaa; background: #57434b; }
+.strip-items :deep(button) { display: flex; align-items: center; justify-content: center; flex: 0 0 60px; width: 60px; height: 46px; padding: 3px; overflow: hidden; border: 1px solid transparent; border-radius: var(--radius-control); background: var(--viewer-raised); color: inherit; }
+.strip-items :deep(button:hover) { background: var(--viewer-hover); }
+.strip-items :deep(button:focus-visible) { outline: 2px solid var(--viewer-accent); outline-offset: 2px; }
+.strip-items :deep(button.selected) { border-color: var(--viewer-accent); background: var(--viewer-selected); }
 .strip-items :deep(button) { transition: transform var(--motion-settle) var(--ease-spring), border-color var(--motion-fast) ease, background var(--motion-fast) ease; }
 .strip-items :deep(button.selected) { transform: translateY(-2px); }
 .strip-items :deep(button:active) { transform: scale(.96); transition-duration: 80ms; }
