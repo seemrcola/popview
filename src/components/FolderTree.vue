@@ -47,23 +47,22 @@ function treeGuides(node: DirectoryNode) {
 </template>
 
 <style scoped>
-
-.folder-tree { min-height: 0; flex: 1; overflow: auto; padding: 12px 10px 20px; scrollbar-width: thin; scrollbar-color: #a2bcb0 transparent; overscroll-behavior: contain; }
-.folder-line { position: relative; min-height: 38px; display: flex; align-items: center; padding-left: calc(var(--depth) * 20px + 6px); min-width: calc(var(--depth) * 20px + 150px); border: 1px solid transparent; border-radius: 8px; }
-.tree-disclosure, .tree-disclosure-spacer { width: 20px; height: 28px; flex: 0 0 20px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #596f62; }
-.tree-disclosure:hover { background: #c8e0d3; color: #263e30; }
-.folder-row { min-width: 0; flex: 1; min-height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 3px; border: 0; border-radius: 5px; background: transparent; color: #2e4036; text-align: left; font-size: 13px; }
-.folder-line:hover { background: #eff8f2; }
-.folder-line.selected { background: #ffc4cd; border-color: #77575e; }
-.folder-line.selected .folder-row { color: #392a30; font-weight: 650; }
+.folder-tree { min-height: 0; flex: 1; overflow: auto; padding: 14px 12px 20px; scrollbar-width: thin; scrollbar-color: #789e89 transparent; overscroll-behavior: contain; }
+.folder-line { position: relative; min-height: 40px; display: flex; align-items: center; margin-bottom: 4px; padding-left: calc(var(--depth) * 20px + 6px); min-width: calc(var(--depth) * 20px + 150px); border: 2px solid transparent; border-radius: 8px; transition: background 160ms ease; }
+.tree-disclosure, .tree-disclosure-spacer { width: 20px; height: 28px; flex: 0 0 20px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #596b5c; }
+.tree-disclosure:hover:not(:disabled) { background: #dce6da; color: #304534; }
+.folder-row { min-width: 0; flex: 1; min-height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 3px; border: 0; border-radius: 5px; background: transparent; color: #3f5142; text-align: left; font-size: 13px; }
+.folder-line:hover { background: #e5f8ec; }
+.folder-line.selected { background: var(--accent-soft); }
+.folder-line.selected .folder-row { color: var(--ink); font-weight: 700; }
 .folder-label { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.root-folder { margin-bottom: 4px; }
-.root-folder .folder-label { font-weight: 650; }
-.tree-folder-icon { flex-shrink: 0; color: #546856; fill: #f8e6a7; }
-.folder-line.selected .tree-folder-icon { fill: #ffedba; color: #624a49; }
-.tree-guide, .tree-branch { position: absolute; top: -1px; bottom: -1px; border-left: 1px solid #b5cfc0; pointer-events: none; }
-.tree-branch::after { content: ''; position: absolute; top: 19px; width: 10px; border-top: 1px solid #b5cfc0; }
+.root-folder { margin-bottom: 6px; }
+.root-folder .folder-label { font-weight: 600; }
+.tree-folder-icon { flex-shrink: 0; color: #455e4c; fill: var(--yellow); }
+.folder-line.selected .tree-folder-icon { color: var(--ink); }
+.tree-guide, .tree-branch { position: absolute; top: -6px; bottom: -2px; border-left: 1px solid #8db49d; pointer-events: none; }
+.tree-branch::after { content: ''; position: absolute; top: 25px; width: 10px; border-top: 1px solid #8db49d; }
 .tree-branch.last { bottom: 50%; }
-.folder-row:focus-visible, .tree-disclosure:focus-visible { outline: 2px solid #a43c59; outline-offset: -2px; }
+.folder-row:focus-visible, .tree-disclosure:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .folder-line { transition: none; } }
 </style>

@@ -84,8 +84,10 @@ function refreshDirectory() {
           </div>
           <div class="media-actions">
             <label v-if="images.length" class="search-box"><Search :size="15" /><input v-model="query" aria-label="搜索图片" placeholder="搜索图片" /></label>
-            <button class="icon-button" :class="{ active: viewMode === 'grid' }" :aria-pressed="viewMode === 'grid'" title="网格" aria-label="网格视图" @click="viewMode = 'grid'"><Grid2X2 :size="15" /></button>
-            <button class="icon-button" :class="{ active: viewMode === 'list' }" :aria-pressed="viewMode === 'list'" title="列表" aria-label="列表视图" @click="viewMode = 'list'"><List :size="15" /></button>
+            <div class="view-switch" role="group" aria-label="显示方式">
+              <button class="icon-button" :class="{ active: viewMode === 'grid' }" :aria-pressed="viewMode === 'grid'" title="网格" aria-label="网格视图" @click="viewMode = 'grid'"><Grid2X2 :size="15" /></button>
+              <button class="icon-button" :class="{ active: viewMode === 'list' }" :aria-pressed="viewMode === 'list'" title="列表" aria-label="列表视图" @click="viewMode = 'list'"><List :size="15" /></button>
+            </div>
           </div>
         </div>
         <ImageCollection :folders="folderEntries" :images="filteredImages" :view-mode="viewMode"

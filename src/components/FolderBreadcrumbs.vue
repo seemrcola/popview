@@ -61,11 +61,11 @@ onBeforeUnmount(() => {
 .folder-breadcrumbs li { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 0 1 auto; }
 .folder-breadcrumbs li.overflow { flex: 0 0 auto; }
 .folder-breadcrumbs .separator { flex: 0 0 12px; color: #9b9298; }
-.folder-breadcrumbs .crumb-name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 6px 4px; border: 0; border-radius: 5px; background: transparent; color: #736960; font-size: 12px; line-height: 20px; text-align: left; }
-.folder-breadcrumbs .current .crumb-name { color: #27242b; font-weight: 600; }
+.folder-breadcrumbs .crumb-name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px; border: 0; border-radius: 5px; background: transparent; color: var(--ink-muted); font-size: 13px; line-height: 22px; text-align: left; }
+.folder-breadcrumbs .current .crumb-name { color: var(--ink); font-size: 15px; font-weight: 600; }
 .folder-breadcrumbs button:hover, .folder-breadcrumbs summary:hover, .folder-breadcrumbs details[open] summary { background: #f0ece4; color: #27242b; }
 .folder-breadcrumbs .overflow-trigger { display: grid; place-items: center; width: 28px; height: 30px; padding: 0; border: 0; border-radius: 5px; color: #736960; background: transparent; }
-.folder-breadcrumbs button:focus-visible, .folder-breadcrumbs summary:focus-visible { outline: 2px solid #a43c59; outline-offset: -2px; }
+.folder-breadcrumbs button:focus-visible, .folder-breadcrumbs summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .folder-breadcrumbs details { position: relative; }
 .folder-breadcrumbs summary { list-style: none; cursor: pointer; }
 .folder-breadcrumbs summary::-webkit-details-marker { display: none; }

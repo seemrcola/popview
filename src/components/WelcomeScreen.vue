@@ -58,18 +58,18 @@ const emit = defineEmits<{ choose: [] }>()
 </template>
 
 <style scoped>
-.welcome-screen { height: 100dvh; min-height: 400px; padding: 32px 22px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: auto; background: #fffdf7; }
+.welcome-screen { height: 100dvh; min-height: 400px; padding: 32px 22px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: auto; background: var(--surface); }
 .welcome-brand { display: flex; align-items: baseline; color: #34312f; font-size: 23px; line-height: 1.2; font-weight: 750; letter-spacing: -.04em; margin-bottom: 20px; }
 .welcome-brand > span { font-weight: 450; }
 .welcome-brand > i { width: 6px; height: 6px; border-radius: 50%; background: #d98289; margin-left: 4px; }
 .welcome-launch { display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; max-width: 260px; padding: 0 0 6px; border: 0; background: transparent; color: #34312f; border-radius: 16px; -webkit-tap-highlight-color: transparent; }
 .welcome-launch:disabled { opacity: 1; cursor: wait; }
 .welcome-art { width: 100%; height: auto; overflow: visible; flex-shrink: 0; }
-.welcome-action { display: flex; align-items: center; justify-content: space-between; width: 206px; max-width: 100%; min-height: 46px; padding: 0 16px; border: 1.5px solid #34312f; border-radius: 10px; background: #f8e8aa; box-shadow: 2px 3px 0 #34312f; font-size: 14px; font-weight: 650; transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease; }
-.welcome-launch:hover:not(:disabled) .welcome-action { background: #f4d986; }
-.welcome-launch:active:not(:disabled) .welcome-action { transform: translate(2px, 2px); box-shadow: 0 1px 0 #34312f; }
+.welcome-action { display: flex; align-items: center; justify-content: space-between; width: 206px; max-width: 100%; min-height: 46px; padding: 0 16px; border: 1px solid var(--ink); border-radius: 5px; background: var(--yellow); color: var(--ink); font-size: 14px; font-weight: 500; transition: background 180ms ease, transform 180ms ease; }
+.welcome-launch:hover:not(:disabled) .welcome-action { background: var(--accent-soft); }
+.welcome-launch:active:not(:disabled) .welcome-action { transform: translateY(1px); }
 .welcome-launch:focus-visible { outline: none; }
-.welcome-launch:focus-visible .welcome-action { outline: 2px solid #aa4661; outline-offset: 5px; }
+.welcome-launch:focus-visible .welcome-action { outline: 2px solid var(--accent); outline-offset: 5px; }
 .print { transition: transform 420ms cubic-bezier(.22,1,.36,1); }
 .print-left { transform: rotate(-13deg); transform-origin: 112px 167px; }
 .print-right { transform: rotate(12deg); transform-origin: 159px 160px; }
@@ -80,12 +80,13 @@ const emit = defineEmits<{ choose: [] }>()
 .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-front { transform: translateY(-17px) rotate(2deg); }
 .welcome-launch:disabled .print-drift { animation-play-state: paused; }
 .welcome-loading { animation: welcome-spin 1s linear infinite; }
-.welcome-error { width: 100%; margin: 20px 0 0; color: #963849; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; text-align: center; }
+.welcome-error { width: 100%; max-width: 360px; margin: 20px 0 0; color: #963849; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; text-align: center; }
 @keyframes print-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes welcome-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .print-drift, .welcome-loading { animation: none; }
   .print, .welcome-action { transition: none; }
+  .welcome-launch:active:not(:disabled) .welcome-action { transform: none; }
   .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-left { transform: rotate(-13deg); }
   .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-right { transform: rotate(12deg); }
   .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-front { transform: rotate(-3deg); }
