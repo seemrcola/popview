@@ -108,7 +108,7 @@ onBeforeUnmount(() => { observer?.disconnect() })
 
 <template>
   <section class="single-image-viewer viewer-surface" aria-label="单图查看" @keydown="keydown">
-    <header class="viewer-header">
+    <header class="viewer-header" data-tauri-drag-region>
       <slot name="modes" />
       <strong :title="image?.name">{{ image?.name }}</strong>
       <span>{{ index + 1 }} / {{ images.length }}</span>

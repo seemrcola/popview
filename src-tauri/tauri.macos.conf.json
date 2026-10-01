@@ -1,0 +1,18 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "PopView",
+        "width": 300,
+        "height": 500,
+        "minWidth": 300,
+        "minHeight": 500,
+        "center": true,
+        "resizable": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 232, "y": 24 }
+      }
+    ]
+  }
+}

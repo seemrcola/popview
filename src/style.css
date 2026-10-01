@@ -34,20 +34,26 @@ input { caret-color: var(--accent); }
 .app-toolbar {
   height: 64px;
   flex: 0 0 64px;
-  padding: 0 24px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
-.app-title, .toolbar-actions, .media-actions, .sidebar-heading { display: flex; align-items: center; }
+.app-title, .media-actions, .sidebar-heading { display: flex; align-items: center; }
+.welcome-titlebar { display: none; }
+.macos-overlay .welcome-titlebar { display: block; position: absolute; inset: 0 0 auto; height: 64px; }
+.macos-overlay .welcome-screen { padding-top: 64px; }
+.macos-overlay .app-toolbar { padding-right: 96px; }
+.macos-overlay [data-tauri-drag-region] { user-select: none; -webkit-user-select: none; }
+.macos-overlay .app-title { pointer-events: none; }
 .app-title { min-width: 0; gap: 12px; }
 .app-title > div { min-width: 0; }
 .brand-icon { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
 .app-title strong { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; line-height: 22px; letter-spacing: -.03em; }
 .app-title span { display: block; max-width: 240px; overflow: hidden; color: var(--ink-muted); font-size: 12px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
-.toolbar-actions, .media-actions { gap: 12px; }
+.media-actions { gap: 12px; }
 .icon-button {
   display: inline-flex;
   align-items: center;

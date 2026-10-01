@@ -1,5 +1,7 @@
 mod directories;
 mod media;
+#[cfg(target_os = "macos")]
+mod window_chrome;
 
 use directories::{read_directory, sample_images, DirectoryEntry, PreviewEntry};
 use media::BrowserState;
@@ -73,6 +75,26 @@ async fn sample_directory_images(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window("main") {
+                window_chrome::align_buttons(&window.as_ref().window())?;
+            }
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            #[cfg(target_os = "macos")]
+            if matches!(
+                event,
+                tauri::WindowEvent::Resized(_)
+                    | tauri::WindowEvent::ScaleFactorChanged { .. }
+                    | tauri::WindowEvent::Focused(_)
+            ) {
+                if let Err(error) = window_chrome::align_buttons(window) {
+                    eprintln!("Unable to align window controls: {error}");
+                }
+            }
+        })
         .manage(BrowserState::default())
         .plugin(tauri_plugin_dialog::init())
         .register_asynchronous_uri_scheme_protocol("media", |context, request, responder| {

@@ -119,7 +119,7 @@ onBeforeUnmount(deactivate)
 
 <template>
   <section class="board-preview viewer-surface" aria-label="画板查看" @keydown="board?.keydown($event)" @keyup="board?.keyup($event)">
-    <header class="viewer-header">
+    <header class="viewer-header" data-tauri-drag-region>
       <slot name="modes" />
       <div class="viewer-controls"><slot name="close" /></div>
     </header>

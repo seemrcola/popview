@@ -7,6 +7,7 @@ const emit = defineEmits<{ choose: [] }>()
 
 <template>
   <main class="welcome-screen">
+    <div class="welcome-titlebar" data-tauri-drag-region aria-hidden="true" />
     <div class="welcome-brand" aria-label="PopView">Pop<span>View</span><i aria-hidden="true" /></div>
     <button class="welcome-launch" :disabled="busy" :aria-busy="busy" @click="emit('choose')">
       <svg class="welcome-art" viewBox="0 0 260 250" fill="none" aria-hidden="true">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { Grid2X2, List, RefreshCw, Search } from 'lucide-vue-next'
+import { Grid2X2, List, Search } from 'lucide-vue-next'
 import ImagePreview from './components/ImagePreview.vue'
 import WelcomeScreen from './components/WelcomeScreen.vue'
 import FolderBreadcrumbs from './components/FolderBreadcrumbs.vue'
@@ -53,18 +53,13 @@ function selectFolder(path: string) {
   void browser.selectDirectory(path)
 }
 
-function refreshDirectory() {
-  chooseError.value = ''
-  void browser.selectDirectory(selectedPath.value, true)
-}
 </script>
 
 <template>
   <WelcomeScreen v-if="!rootPath" :busy="isChoosing" :error="scanError" @choose="chooseFolder" />
   <main v-else class="app-shell">
-    <header class="app-toolbar">
+    <header class="app-toolbar" data-tauri-drag-region>
       <div class="app-title"><img class="brand-icon" :src="appIcon" alt="" /><div><strong>PopView</strong><span>{{ currentLabel }}</span></div></div>
-      <div class="toolbar-actions"><button class="icon-button" :disabled="isLoading" title="刷新" aria-label="刷新当前目录" @click="refreshDirectory"><RefreshCw :size="15" /></button></div>
     </header>
     <div class="app-body">
       <aside class="file-sidebar">

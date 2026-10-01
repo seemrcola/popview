@@ -59,14 +59,16 @@ describe('image search visibility', () => {
     expect(wrapper.getComponent(ImageCollection).props('images')).toHaveLength(1)
   })
 
-  it('updates search availability when refresh removes or adds images', async () => {
+  it('updates search availability when reopening a directory without a header refresh button', async () => {
     const wrapper = await openDirectory([image])
+    expect(wrapper.find('[aria-label="刷新当前目录"]').exists()).toBe(false)
     await wrapper.get(searchSelector).setValue('missing')
-    await wrapper.get('[aria-label="刷新当前目录"]').trigger('click')
+    vi.mocked(chooseRoot).mockResolvedValueOnce({ session: 2, path: '/photos', entries: [] })
+    await wrapper.get('.sidebar-open').trigger('click')
     await flushPromises()
     expect(wrapper.find(searchSelector).exists()).toBe(false)
-    vi.mocked(listDirectory).mockResolvedValueOnce([image])
-    await wrapper.get('[aria-label="刷新当前目录"]').trigger('click')
+    vi.mocked(chooseRoot).mockResolvedValueOnce({ session: 3, path: '/photos', entries: [image] })
+    await wrapper.get('.sidebar-open').trigger('click')
     await flushPromises()
     expect((wrapper.get(searchSelector).element as HTMLInputElement).value).toBe('')
     expect(wrapper.getComponent(ImageCollection).props('images')).toHaveLength(1)
