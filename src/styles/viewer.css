@@ -1,0 +1,11 @@
+.viewer-surface { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; flex-direction: column; background: #202025; color: #f6f3ef; }
+
+.viewer-surface .viewer-header { display: flex; align-items: center; gap: 18px; padding: 14px 22px; border-bottom: 1px solid #3e3d44; }
+.viewer-surface .viewer-header strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.viewer-surface .viewer-header > span { color: #c5bec7; white-space: nowrap; font-size: 12px; }
+.viewer-surface .viewer-controls { display: flex; gap: 6px; margin-left: auto; }
+.viewer-surface .viewer-header button, .viewer-surface .viewer-arrow { display: grid; place-items: center; flex-shrink: 0; min-width: 36px; height: 36px; padding: 6px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: inherit; }
+.viewer-surface .viewer-header button:hover, .viewer-surface .viewer-arrow:hover { background: #3e3a42; }
+.viewer-surface .viewer-header button:focus-visible, .viewer-surface .viewer-arrow:focus-visible { outline: 2px solid #ff9aaa; outline-offset: 2px; }
+.viewer-surface .viewer-footer { flex-shrink: 0; border-top: 1px solid #3e3d44; }
+@media (max-width: 650px) { .viewer-surface .viewer-header { gap: 8px; padding: 10px; } .viewer-surface .viewer-header > strong { display: none; } .viewer-surface .viewer-controls { gap: 2px; } }
