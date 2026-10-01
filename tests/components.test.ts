@@ -21,6 +21,7 @@ describe('collection', () => {
     const wrapper = mount(ImageCollection, { props: { folders: folders(2), images: images(1), viewMode: 'list', version: 1, imagesFor } })
     const rows = wrapper.findAll('.media-list > .list-item')
     expect(rows).toHaveLength(3)
+    expect(rows.every(row => row.get('.list-open').attributes('aria-hidden') === 'true')).toBe(true)
     expect(rows.map(row => row.get('.media-name').text())).toEqual(['Folder 0', 'Folder 1', '0.png'])
     expect(rows[0].get('.media-meta').text()).toBe('文件夹')
     expect(rows[0].findComponent(FolderIcon).exists()).toBe(true)
@@ -29,6 +30,11 @@ describe('collection', () => {
     await rows[0].trigger('click')
     expect(wrapper.emitted('selectFolder')?.[0]).toEqual(['/photos/folder-0'])
     expect(wrapper.emitted('openImage')).toBeUndefined()
+    expect(rows[2].attributes('title')).toBe('0.png')
+    await rows[2].get('.list-open').trigger('click')
+    expect(wrapper.emitted('openImage')?.[0]).toEqual([images(1)[0]])
+    await wrapper.setProps({ viewMode: 'grid' })
+    expect(wrapper.find('.list-open').exists()).toBe(false)
   })
 
   it('switches folder-only collections between cards and rows and releases cover visibility', async () => {

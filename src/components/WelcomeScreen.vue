@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUpRight, LoaderCircle } from 'lucide-vue-next'
+import { LoaderCircle } from 'lucide-vue-next'
 
 defineProps<{ busy: boolean; error: string }>()
 const emit = defineEmits<{ choose: [] }>()
@@ -51,7 +51,6 @@ const emit = defineEmits<{ choose: [] }>()
       <span class="welcome-action">
         <span>{{ busy ? '打开中…' : '选择文件夹' }}</span>
         <LoaderCircle v-if="busy" class="welcome-loading" :size="18" aria-hidden="true" />
-        <ArrowUpRight v-else :size="19" aria-hidden="true" />
       </span>
     </button>
     <p v-if="error" class="welcome-error" role="alert">{{ error }}</p>
@@ -66,8 +65,8 @@ const emit = defineEmits<{ choose: [] }>()
 .welcome-launch { display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; max-width: 260px; padding: 0 0 6px; border: 0; background: transparent; color: #34312f; border-radius: 16px; -webkit-tap-highlight-color: transparent; }
 .welcome-launch:disabled { opacity: 1; cursor: wait; }
 .welcome-art { width: 100%; height: auto; overflow: visible; flex-shrink: 0; }
-.welcome-action { display: flex; align-items: center; justify-content: space-between; width: 206px; max-width: 100%; min-height: 46px; padding: 0 16px; border: 1px solid var(--ink); border-radius: 5px; background: var(--yellow); color: var(--ink); font-size: 14px; font-weight: 500; transition: background 180ms ease, transform 180ms ease; }
-.welcome-launch:hover:not(:disabled) .welcome-action { background: var(--accent-soft); }
+.welcome-action { position: relative; display: flex; align-items: center; justify-content: center; width: 180px; max-width: 100%; min-height: 44px; padding: 0 32px; border: 1px solid #dbc383; border-radius: 12px; background: #ffe7a3; color: var(--ink); font-size: 14px; font-weight: 500; transition: background var(--motion-fast) ease, border-color var(--motion-fast) ease, transform var(--motion-settle) var(--ease-spring); }
+.welcome-launch:is(:hover, :focus-visible):not(:disabled) .welcome-action { background: var(--yellow); border-color: #c4a65c; }
 .welcome-launch:focus-visible { outline: none; }
 .welcome-launch:focus-visible .welcome-action { outline: 2px solid var(--accent); outline-offset: 5px; }
 .print { transition: transform var(--motion-settle) var(--ease-spring); }
@@ -77,18 +76,13 @@ const emit = defineEmits<{ choose: [] }>()
 .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-left { transform: translate(-4px, -6px) rotate(-17deg); }
 .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-right { transform: translate(5px, -8px) rotate(16deg); }
 .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-front { transform: translateY(-11px) rotate(-1deg); }
-.welcome-action { transition: background var(--motion-fast) ease, transform var(--motion-settle) var(--ease-spring); }
-.welcome-action > svg:not(.welcome-loading) { transition: transform var(--motion-settle) var(--ease-spring); }
-.welcome-launch:is(:hover, :focus-visible):not(:disabled) .welcome-action > svg:not(.welcome-loading) { transform: translate(2px, -2px); }
 .welcome-launch:active:not(:disabled) .welcome-action { transform: translateY(1px) scale(.97); transition-duration: 80ms; }
-.welcome-loading { animation: welcome-spin 1s linear infinite; }
+.welcome-loading { position: absolute; left: 14px; animation: welcome-spin 1s linear infinite; }
 .welcome-error { width: 100%; max-width: 360px; margin: 20px 0 0; color: #963849; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; text-align: center; }
 @keyframes welcome-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .welcome-loading { animation: none; }
   .print, .welcome-action { transition: none; }
-  .welcome-action > svg:not(.welcome-loading) { transition: none; }
-  .welcome-launch:is(:hover, :focus-visible):not(:disabled) .welcome-action > svg:not(.welcome-loading) { transform: none; }
   .welcome-launch:active:not(:disabled) .welcome-action { transform: none; }
   .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-left { transform: rotate(-13deg); }
   .welcome-launch:is(:hover, :focus-visible):not(:disabled) .print-right { transform: rotate(12deg); }

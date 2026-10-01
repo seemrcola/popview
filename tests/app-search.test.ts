@@ -31,6 +31,16 @@ async function openDirectory(entries: DirectoryEntry[]) {
 }
 
 describe('image search visibility', () => {
+  it('keeps a failed navigation message brief without removing existing images', async () => {
+    const wrapper = await openDirectory([folder, image])
+    vi.mocked(listDirectory).mockRejectedValueOnce(new Error('无法访问'))
+    wrapper.getComponent(ImageCollection).vm.$emit('selectFolder', folder.path)
+    await flushPromises()
+    expect(wrapper.get('.scan-error').text()).toBe('文件夹读取失败')
+    expect(wrapper.getComponent(ImageCollection).props('images')).toHaveLength(1)
+    expect(wrapper.find('.directory-notice').exists()).toBe(false)
+  })
+
   it.each([{ name: 'empty', entries: [] }, { name: 'folders only', entries: [folder] }])('hides search when the directory contains $name', async ({ entries }) => {
     const wrapper = await openDirectory(entries)
     expect(wrapper.find(searchSelector).exists()).toBe(false)

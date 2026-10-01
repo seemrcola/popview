@@ -70,7 +70,7 @@ function selectFolder(path: string) {
           <div><strong>文件夹</strong><span class="muted-count">{{ visibleNodes.length }}</span></div>
           <button class="sidebar-open" :disabled="isChoosing" @click="chooseFolder">{{ isChoosing ? '打开中…' : '选择文件夹' }}</button>
         </div>
-        <div v-if="scanError" class="scan-error" role="alert">{{ scanError }}</div>
+        <div v-if="chooseError || (browser.error.value && (folderEntries.length || filteredImages.length))" class="scan-error" role="alert" :title="scanError">{{ chooseError || '文件夹读取失败' }}</div>
         <FolderTree :nodes="nodes" :visible-nodes="visibleNodes" :selected-path="selectedPath"
           @select="selectFolder" @toggle="browser.toggleDirectory" />
       </aside>
@@ -89,6 +89,7 @@ function selectFolder(path: string) {
           </div>
         </div>
         <ImageCollection :folders="folderEntries" :images="filteredImages" :view-mode="viewMode"
+          :query="query" :loading="isLoading" :error="browser.error.value"
           :version="viewVersion" :images-for="imagesFor" @select-folder="selectFolder"
           @open-image="previewItem = $event" @visibility="setVisible" />
       </section>
