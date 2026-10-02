@@ -79,6 +79,10 @@ describe('dragging thumbnails onto the board', () => {
     await currentPreview.trigger('load')
     expect(rectangle(wrapper.get('.thumbnail-drag-preview').element)).toEqual({ ...placement, width: 280 })
     await thumbnail.trigger('pointerup', { ...pointer, clientX: 460, clientY: 320 })
+    const original = wrapper.get('.board-image img')
+    naturalSize(original.element, 400, 400)
+    await original.trigger('load')
+    await flushPromises()
     expect(rectangle(wrapper.get('.board-image').element)).toEqual({ x: 220, y: 100, width: 280, height: 280 })
   })
 
@@ -86,46 +90,48 @@ describe('dragging thumbnails onto the board', () => {
     [400, 200, 320, 160],
     [200, 400, 140, 280],
     [400, 400, 280, 280],
-  ])('centers a %sx%s preview at the pointer with its final %sx%s size', async (width, height, expectedWidth, expectedHeight) => {
+  ])('centers a %sx%s preview and loaded image at the pointer with a %sx%s size', async (width, height, expectedWidth, expectedHeight) => {
     const { wrapper, thumbnail } = setup(width, height)
     await thumbnail.trigger('pointerdown', { ...pointer, clientX: 140, clientY: 740 })
     await thumbnail.trigger('pointermove', { ...pointer, clientX: 460, clientY: 320 })
     expect(rectangle(wrapper.get('.thumbnail-drag-preview').element)).toEqual({ x: 460, y: 320, width: expectedWidth, height: expectedHeight })
     await thumbnail.trigger('pointerup', { ...pointer, clientX: 500, clientY: 350 })
+    expect(wrapper.find('.thumbnail-drag-preview').exists()).toBe(false)
+    expect(thumbnail.element.hasPointerCapture(pointer.pointerId)).toBe(false)
+    const original = wrapper.get('.board-image img')
+    naturalSize(original.element, width * 4, height * 4)
+    await original.trigger('load')
+    await flushPromises()
     expect(rectangle(wrapper.get('.board-image').element)).toEqual({ x: 400 - expectedWidth / 2, y: 270 - expectedHeight / 2, width: expectedWidth, height: expectedHeight })
-    expect(rectangle(wrapper.get('.thumbnail-drag-preview').element)).toEqual({ x: 500, y: 350, width: expectedWidth, height: expectedHeight })
     expect(wrapper.find('.board-drop-hint').exists()).toBe(false)
   })
 
-  it('keeps the drag preview until the board thumbnail decodes, then keeps the thumbnail until the original decodes', async () => {
+  it('clears the drag preview on drop and shows the original only after decoding', async () => {
     const { wrapper, thumbnail } = setup()
     await thumbnail.trigger('pointerdown', { ...pointer, clientX: 140, clientY: 740 })
     await thumbnail.trigger('pointermove', { ...pointer, clientX: 460, clientY: 320 })
     await thumbnail.trigger('pointerup', { ...pointer, clientX: 460, clientY: 320 })
-    const placement = rectangle(wrapper.get('.board-image').element)
-    const finishPreview = deferredDecode()
-    await wrapper.get('.board-image-preview').trigger('load')
-    expect(wrapper.find('.thumbnail-drag-preview').exists()).toBe(true)
-    expect(wrapper.find('.board-image-status').exists()).toBe(false)
-    finishPreview()
-    await flushPromises()
     expect(wrapper.find('.thumbnail-drag-preview').exists()).toBe(false)
-    expect(wrapper.get('.board-image-preview').attributes('src')).toBe(image.thumbnailSrc)
-    const original = wrapper.get('.board-image img:not(.board-image-preview)')
+    expect(wrapper.find('.board-image-preview').exists()).toBe(false)
+    expect(wrapper.get('.board-image-status').text()).toBe('加载中…')
+    const original = wrapper.get('.board-image img')
+    expect(original.attributes('src')).toBe(image.src)
     naturalSize(original.element, 1600, 800)
     const finishOriginal = deferredDecode()
     await original.trigger('load')
-    expect(wrapper.find('.board-image-preview').exists()).toBe(true)
+    expect(wrapper.get('.board-image-status').text()).toBe('加载中…')
     expect((original.element as HTMLElement).style.display).toBe('none')
     finishOriginal()
     await flushPromises()
     expect(wrapper.find('.board-image-preview').exists()).toBe(false)
+    expect(wrapper.find('.board-image-status').exists()).toBe(false)
     expect((original.element as HTMLElement).style.display).not.toBe('none')
+    const placement = { x: 200, y: 160, width: 320, height: 160 }
     expect(rectangle(wrapper.get('.board-image').element)).toEqual(placement)
     await thumbnail.trigger('click', { detail: 1 })
     expect(wrapper.findAll('.board-image')).toHaveLength(1)
     await thumbnail.trigger('click', { detail: 0 })
-    expect(wrapper.findAll('.board-image')).toHaveLength(2)
+    expect(wrapper.findAll('.board-image')).toHaveLength(1)
   })
 
   it('updates preview size during a drag while preserving its pointer center and matching the drop', async () => {
@@ -146,6 +152,10 @@ describe('dragging thumbnails onto the board', () => {
     expect(preview.x).toBe(500)
     expect(preview.y).toBe(350)
     await thumbnail.trigger('pointerup', { ...pointer, clientX: 500, clientY: 350 })
+    const original = wrapper.get('.board-image img')
+    naturalSize(original.element, 1600, 800)
+    await original.trigger('load')
+    await flushPromises()
     const placed = rectangle(wrapper.get('.board-image').element)
     expect(placed.width).toBe(320)
     expect(placed.height).toBe(160)
@@ -160,7 +170,7 @@ describe('dragging thumbnails onto the board', () => {
     [2, 400, 200, 320, 160],
     [.5, 200, 400, 140, 280],
     [2, 200, 400, 140, 280],
-  ])('matches existing images at zoom %s for a %sx%s image', async (zoom, naturalWidth, naturalHeight, worldWidth, worldHeight) => {
+  ])('reselects an existing image at zoom %s for a %sx%s image', async (zoom, naturalWidth, naturalHeight, worldWidth, worldHeight) => {
     const { wrapper, thumbnail, stage } = setup(naturalWidth, naturalHeight)
     await thumbnail.trigger('click', { detail: 1 })
     await zoomBy(stage, zoom)
@@ -173,20 +183,17 @@ describe('dragging thumbnails onto the board', () => {
     expect(preview.width).toBeCloseTo(existing.width * zoom)
     expect(preview.height).toBeCloseTo(existing.height * zoom)
     await thumbnail.trigger('pointerup', { ...pointer, clientX: 460, clientY: 320 })
-    const placed = rectangle(wrapper.findAll('.board-image')[1].element)
+    expect(wrapper.findAll('.board-image')).toHaveLength(1)
+    const placed = rectangle(wrapper.get('.board-image').element)
     expect(placed.width).toBe(worldWidth)
     expect(placed.height).toBe(worldHeight)
-    const handoff = rectangle(wrapper.get('.thumbnail-drag-preview').element)
-    expect(handoff.width).toBeCloseTo(preview.width)
-    expect(handoff.height).toBeCloseTo(preview.height)
-    expect(handoff.x).toBeCloseTo(460)
-    expect(handoff.y).toBeCloseTo(320)
-    const original = wrapper.findAll('.board-image img:not(.board-image-preview)')[1]
+    expect(placed).toEqual(existing)
+    const original = wrapper.get('.board-image img')
     naturalSize(original.element, naturalWidth * 4, naturalHeight * 4)
     await original.trigger('load')
     await flushPromises()
     expect(wrapper.find('.thumbnail-drag-preview').exists()).toBe(false)
-    expect(rectangle(wrapper.findAll('.board-image')[1].element)).toEqual(placed)
+    expect(rectangle(wrapper.get('.board-image').element)).toEqual(placed)
   })
 
   it('does not add an image when dropped outside the board', async () => {
@@ -199,22 +206,33 @@ describe('dragging thumbnails onto the board', () => {
     expect(wrapper.find('.thumbnail-drag-preview').exists()).toBe(false)
   })
 
-  it('keeps the handoff preview attached to the placed image if the camera moves while decoding', async () => {
+  it('keeps the drop center in world coordinates when the camera moves while decoding', async () => {
     const { wrapper, thumbnail, stage } = setup()
     await thumbnail.trigger('pointerdown', { ...pointer, clientX: 140, clientY: 740 })
     await thumbnail.trigger('pointermove', { ...pointer, clientX: 460, clientY: 320 })
     await thumbnail.trigger('pointerup', { ...pointer, clientX: 460, clientY: 320 })
+    const pending = rectangle(wrapper.get('.board-image').element)
+    const original = wrapper.get('.board-image img')
+    naturalSize(original.element, 1600, 800)
+    const finishOriginal = deferredDecode()
+    await original.trigger('load')
     await stage.trigger('wheel', { deltaY: -100, clientX: 500, clientY: 380 })
     const [cameraX, cameraY, zoom] = (wrapper.get('.board-world').element as HTMLElement).style.transform.match(/-?\d+(?:\.\d+)?/g)!.map(Number)
+    finishOriginal()
+    await flushPromises()
     const placed = rectangle(wrapper.get('.board-image').element)
-    const preview = rectangle(wrapper.get('.thumbnail-drag-preview').element)
-    expect(preview.width).toBeCloseTo(placed.width * zoom)
-    expect(preview.height).toBeCloseTo(placed.height * zoom)
-    expect(preview.x).toBeCloseTo(bounds.left + cameraX + (placed.x + placed.width / 2) * zoom)
-    expect(preview.y).toBeCloseTo(bounds.top + cameraY + (placed.y + placed.height / 2) * zoom)
+    expect(placed.x + placed.width / 2).toBe(pending.x + pending.width / 2)
+    expect(placed.y + placed.height / 2).toBe(pending.y + pending.height / 2)
+    expect(wrapper.getComponent(ImageBoard).vm.getImageRect(1)).toEqual({
+      x: bounds.left + cameraX + 360 * zoom,
+      y: bounds.top + cameraY + 240 * zoom,
+      width: 320 * zoom,
+      height: 160 * zoom,
+    })
+    expect(wrapper.find('.thumbnail-drag-preview').exists()).toBe(false)
   })
 
-  it('clears the handoff preview when its placed image is removed', async () => {
+  it('allows another drag after removing a dropped image', async () => {
     const { wrapper, thumbnail } = setup()
     await thumbnail.trigger('pointerdown', { ...pointer, clientX: 140, clientY: 740 })
     await thumbnail.trigger('pointermove', { ...pointer, clientX: 460, clientY: 320 })
@@ -240,38 +258,39 @@ describe('dragging thumbnails onto the board', () => {
     expect(wrapper.emitted('close')).toBeUndefined()
   })
 
-  it('keeps a dropped thumbnail visible when the original fails', async () => {
+  it('shows an error when the dropped original fails', async () => {
     const { wrapper, thumbnail } = setup()
     await thumbnail.trigger('pointerdown', { ...pointer, clientX: 140, clientY: 740 })
     await thumbnail.trigger('pointermove', { ...pointer, clientX: 460, clientY: 320 })
     await thumbnail.trigger('pointerup', { ...pointer, clientX: 460, clientY: 320 })
-    await wrapper.get('.board-image img:not(.board-image-preview)').trigger('error')
-    expect(wrapper.find('.thumbnail-drag-preview').exists()).toBe(true)
-    await wrapper.get('.board-image-preview').trigger('load')
-    await flushPromises()
+    const original = wrapper.get('.board-image img')
+    await original.trigger('error')
     expect(wrapper.find('.thumbnail-drag-preview').exists()).toBe(false)
-    expect(wrapper.find('.board-image-preview').exists()).toBe(true)
+    expect(wrapper.find('.board-image-preview').exists()).toBe(false)
+    expect((original.element as HTMLElement).style.display).toBe('none')
     expect(wrapper.get('.board-image-status').text()).toBe('无法显示此图片')
   })
 
-  it('falls back to the original when the thumbnail is unavailable and preserves placement after loading', async () => {
+  it('falls back to the original when the thumbnail is unavailable and preserves the drop center after loading', async () => {
     const { wrapper, thumbnail } = setup(0, 0)
     await thumbnail.trigger('pointerdown', { ...pointer, clientX: 140, clientY: 740 })
     await thumbnail.trigger('pointermove', { ...pointer, clientX: 460, clientY: 320 })
     expect(wrapper.get('.thumbnail-drag-preview img').attributes('src')).toBe(image.src)
     await thumbnail.trigger('pointerup', { ...pointer, clientX: 460, clientY: 320 })
     const placement = rectangle(wrapper.get('.board-image').element)
-    await wrapper.get('.board-image-preview').trigger('error')
     expect(wrapper.find('.thumbnail-drag-preview').exists()).toBe(false)
     const original = wrapper.get('.board-image img')
     naturalSize(original.element, 400, 800)
     await original.trigger('load')
     await flushPromises()
-    expect(rectangle(wrapper.get('.board-image').element)).toEqual(placement)
+    const loaded = rectangle(wrapper.get('.board-image').element)
+    expect(loaded).toEqual({ x: 290, y: 100, width: 140, height: 280 })
+    expect(loaded.x + loaded.width / 2).toBe(placement.x + placement.width / 2)
+    expect(loaded.y + loaded.height / 2).toBe(placement.y + placement.height / 2)
     expect(wrapper.find('.board-image-status').exists()).toBe(false)
   })
 
-  it('adds on click at its final size without a loading placeholder or a later geometry change', async () => {
+  it('uses the original source when adding by click', async () => {
     const { wrapper, thumbnail } = setup()
     await thumbnail.trigger('pointerdown', { ...pointer, clientX: 140, clientY: 740 })
     await thumbnail.trigger('pointermove', { ...pointer, clientX: 142, clientY: 741 })
@@ -281,17 +300,17 @@ describe('dragging thumbnails onto the board', () => {
     expect(wrapper.findAll('.board-image')).toHaveLength(1)
     const placement = { x: 240, y: 220, width: 320, height: 160 }
     expect(rectangle(wrapper.get('.board-image').element)).toEqual(placement)
-    expect(wrapper.get('.board-image-preview').attributes('src')).toBe(image.thumbnailSrc)
-    expect(wrapper.find('.board-image-status').exists()).toBe(false)
-    const original = wrapper.get('.board-image img:not(.board-image-preview)')
+    expect(wrapper.find('.board-image-preview').exists()).toBe(false)
+    expect(wrapper.find('.board-image-status').text()).toBe('加载中…')
+    const original = wrapper.get('.board-image img')
     naturalSize(original.element, 400, 200)
     const finishOriginal = deferredDecode()
     await original.trigger('load')
-    expect(wrapper.find('.board-image-preview').exists()).toBe(true)
     expect(rectangle(wrapper.get('.board-image').element)).toEqual(placement)
     finishOriginal()
     await flushPromises()
     expect(wrapper.find('.board-image-preview').exists()).toBe(false)
+    expect(wrapper.find('.board-image-status').exists()).toBe(false)
     expect(rectangle(wrapper.get('.board-image').element)).toEqual(placement)
     expect(wrapper.getComponent(ImageBoard).vm.selectedPath).toBe(image.path)
   })
@@ -301,28 +320,28 @@ describe('dragging thumbnails onto the board', () => {
     await thumbnail.trigger('click', { detail })
     const placement = { x: 330, y: 160, width: 140, height: 280 }
     expect(rectangle(wrapper.get('.board-image').element)).toEqual(placement)
-    expect(wrapper.find('.board-image-status').exists()).toBe(false)
-    const original = wrapper.get('.board-image img:not(.board-image-preview)')
+    expect(wrapper.find('.board-image-status').text()).toBe('加载中…')
+    const original = wrapper.get('.board-image img')
     naturalSize(original.element, 800, 1600)
     await original.trigger('load')
     await flushPromises()
     expect(rectangle(wrapper.get('.board-image').element)).toEqual(placement)
+    expect(wrapper.find('.board-image-status').exists()).toBe(false)
   })
 
-  it('keeps click insertion centered and sized correctly after zooming, including repeat additions', async () => {
+  it('keeps click insertion centered and sized correctly after zooming, including repeat selections', async () => {
     const { wrapper, thumbnail, stage } = setup(200, 400)
     await stage.trigger('wheel', { deltaY: -100, clientX: 500, clientY: 380 })
     const [cameraX, cameraY, zoom] = (wrapper.get('.board-world').element as HTMLElement).style.transform.match(/-?\d+(?:\.\d+)?/g)!.map(Number)
     await thumbnail.trigger('click', { detail: 1 })
     await thumbnail.trigger('click', { detail: 1 })
     const placed = wrapper.findAll('.board-image').map(item => rectangle(item.element))
-    expect(placed).toHaveLength(2)
-    for (const [index, item] of placed.entries()) {
-      expect(item.width).toBe(140)
-      expect(item.height).toBe(280)
-      expect(cameraX + (item.x + item.width / 2) * zoom).toBeCloseTo(bounds.width / 2 + index * 24)
-      expect(cameraY + (item.y + item.height / 2) * zoom).toBeCloseTo(bounds.height / 2 + index * 24)
-    }
+    expect(placed).toHaveLength(1)
+    const item = placed[0]
+    expect(item.width).toBe(140)
+    expect(item.height).toBe(280)
+    expect(cameraX + (item.x + item.width / 2) * zoom).toBeCloseTo(bounds.width / 2)
+    expect(cameraY + (item.y + item.height / 2) * zoom).toBeCloseTo(bounds.height / 2)
   })
 
   it('preserves the existing click fallback when thumbnail dimensions are unavailable', async () => {
