@@ -27,7 +27,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <dialog ref="dialog" class="image-viewer" aria-label="图片查看器" @cancel.prevent="viewer?.cancel()">
+  <dialog ref="dialog" class="image-viewer" aria-label="图片查看器" aria-modal="true" @cancel.prevent="viewer?.cancel()">
     <KeepAlive>
       <component :is="mode === 'single' ? SingleImageViewer : BoardPreview" ref="viewer" v-bind="viewerProps" @close="emit('close')" @select="selectedImage = $event">
         <template #modes>

@@ -1,5 +1,6 @@
 import { computed, readonly, ref } from 'vue'
 import { chooseRoot, listDirectory } from '../services/media'
+import { userFacingError } from '../services/errors'
 import type { DirectoryEntry, DirectoryNode } from '../types/media'
 
 type DirectoryState = { entries: DirectoryEntry[] | null; loading: boolean; error: string; revision: number; invalidation: number; stale: boolean }
@@ -102,7 +103,7 @@ export function useDirectoryBrowser() {
         return true
       })
       .catch((cause: unknown) => {
-        directory.error = cause instanceof Error ? cause.message : String(cause)
+        directory.error = userFacingError(cause, '读取文件夹失败')
         return false
       })
       .finally(() => {

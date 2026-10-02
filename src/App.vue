@@ -11,6 +11,8 @@ import { expandWindow, imageSource } from './services/media'
 import { useDirectoryBrowser } from './composables/useDirectoryBrowser'
 import { useFolderPreviews } from './composables/useFolderPreviews'
 import { useButtonFeedback } from './composables/useButtonFeedback'
+import { useImageSearch } from './composables/useImageSearch'
+import { userFacingError } from './services/errors'
 import './styles/buttons.css'
 import type { ImageItem } from './types/media'
 
@@ -18,7 +20,6 @@ const browser = useDirectoryBrowser()
 useButtonFeedback()
 const { rootPath, selectedPath, nodes, visibleNodes, currentEntries, breadcrumbs, isLoading, viewVersion } = browser
 const { imagesFor, setVisible } = useFolderPreviews(browser)
-const query = ref('')
 const viewMode = ref<'grid' | 'list'>('grid')
 const chooseError = ref('')
 const scanError = computed(() => chooseError.value || browser.error.value)
@@ -28,12 +29,8 @@ const folderEntries = computed(() => currentEntries.value.filter(entry => entry.
 const images = computed<ImageItem[]>(() => currentEntries.value.filter(entry => !entry.is_dir).map(entry => ({
   ...imageSource(entry, browser.session.value, viewVersion.value), size: entry.size, modified: entry.modified,
 })))
-const filteredImages = computed(() => {
-  const search = query.value.trim().toLowerCase()
-  return images.value.filter(item => item.name.toLowerCase().includes(search))
-})
+const { query, filteredItems: filteredImages, reset: resetSearch } = useImageSearch(images)
 watch(viewVersion, () => { previewItem.value = null })
-watch(() => images.value.length, count => { if (!count) query.value = '' })
 
 async function chooseFolder() {
   if (isChoosing.value) return
@@ -42,10 +39,10 @@ async function chooseFolder() {
   const firstOpen = !rootPath.value
   try {
     if (!await browser.openRoot()) return
-    query.value = ''
+    resetSearch()
     if (firstOpen) await expandWindow().catch(() => { chooseError.value = '目录已打开，但窗口调整失败，请手动调整窗口大小。' })
   } catch (error) {
-    chooseError.value = error instanceof Error ? error.message : String(error)
+    chooseError.value = userFacingError(error, '无法打开文件夹')
   } finally {
     isChoosing.value = false
   }
@@ -53,6 +50,7 @@ async function chooseFolder() {
 
 function selectFolder(path: string) {
   chooseError.value = ''
+  resetSearch()
   void browser.selectDirectory(path)
 }
 

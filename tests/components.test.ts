@@ -6,6 +6,7 @@ import ImagePreview from '../src/components/ImagePreview.vue'
 import FolderCard from '../src/components/FolderCard.vue'
 import FolderIcon from '../src/components/FolderIcon.vue'
 import ThumbnailStrip from '../src/components/ThumbnailStrip.vue'
+import SingleImageViewer from '../src/components/SingleImageViewer.vue'
 import type { DirectoryEntry, ImageItem } from '../src/types/media'
 
 const images = (count: number): ImageItem[] => Array.from({ length: count }, (_, index) => ({
@@ -114,6 +115,12 @@ describe('collection', () => {
 })
 
 describe('preview components', () => {
+  it('supports keyboard navigation in the single-image viewer', async () => {
+    const wrapper = mount(SingleImageViewer, { props: { images: images(2), initialPath: '/photos/0.png' } })
+    await wrapper.get('.viewer-canvas').trigger('keydown', { key: 'ArrowRight' })
+    expect(wrapper.get('.viewer-canvas img').attributes('src')).toBe('original-1')
+  })
+
   it('virtualizes long thumbnail strips and reveals the selection', async () => {
     const wrapper = mount(ThumbnailStrip, {
       props: { images: images(10000), selectedPath: '/photos/0.png' },

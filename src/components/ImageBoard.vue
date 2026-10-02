@@ -243,7 +243,7 @@ onBeforeUnmount(() => {
         <button aria-label="缩小画板" title="缩小画板" @click="changeCameraZoom(1 / 1.2)"><Minus :size="15" /></button>
         <button class="board-percentage" title="恢复画板 100%" @click="changeCameraZoom(1 / camera.zoom)">{{ camera.zoom < .1 ? (camera.zoom * 100).toFixed(1) : Math.round(camera.zoom * 100) }}%</button>
         <button aria-label="放大画板" title="放大画板" @click="changeCameraZoom(1.2)"><Plus :size="15" /></button>
-        <button :disabled="!items.length" class="board-text-button" title="显示全部图片（0）" @click="frameImages(items)"><Scan :size="15" />显示全部</button>
+        <button :disabled="!items.length" class="board-text-button" :title="`显示全部图片（${items.length}）`" @click="frameImages(items)"><Scan :size="15" />显示全部</button>
       </div>
       <span v-if="selected" class="board-selection-name" :title="selected.name">{{ selected.name }}</span>
     </div>
