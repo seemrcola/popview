@@ -26,6 +26,7 @@ let observer: ResizeObserver | undefined
 const worldStyle = computed(() => ({ transform: `translate(${camera.value.x}px, ${camera.value.y}px) scale(${camera.value.zoom})` }))
 const selectionStyle = computed(() => ({ transform: `scale(${1 / camera.value.zoom})` }))
 const selectedPath = computed(() => selected.value?.path)
+const imagePaths = computed(() => new Set(items.value.map(item => item.path)))
 
 function screenToWorld(clientX: number, clientY: number) {
   const bounds = stage.value?.getBoundingClientRect()
@@ -51,6 +52,28 @@ function getImageWorldSize(naturalWidth = 0, naturalHeight = 0) {
   return { width: naturalWidth * ratio, height: naturalHeight * ratio }
 }
 function addImage(image: ImageSource, point?: { x: number; y: number }, preview?: PlacementPreview) {
+  const existing = items.value.find(item => item.path === image.path)
+  if (existing) {
+    activate(existing)
+    const bounds = stage.value?.getBoundingClientRect()
+    const rect = getImageRect(existing.id)
+    if (bounds && rect && (rect.x < bounds.left || rect.x > bounds.right || rect.y < bounds.top || rect.y > bounds.bottom)) {
+      camera.value.x = bounds.width / 2 - (existing.x + existing.width / 2) * camera.value.zoom
+      camera.value.y = bounds.height / 2 - (existing.y + existing.height / 2) * camera.value.zoom
+    }
+    const element = stage.value?.querySelector<HTMLElement>(`[data-image-id="${existing.id}"]`)
+    element?.getAnimations?.().forEach(animation => animation.cancel())
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const animation = element?.animate?.([
+        { outline: `${3 / camera.value.zoom}px solid var(--viewer-accent)`, outlineOffset: `${3 / camera.value.zoom}px` },
+        { outline: '0px solid transparent', outlineOffset: '0px' },
+      ], { duration: 420, easing: 'cubic-bezier(.22, 1, .36, 1)' })
+      void animation?.finished.catch(() => {})
+    }
+    notice.value = `已选中 ${existing.name}`
+    focus()
+    return existing.id
+  }
   const bounds = stage.value?.getBoundingClientRect()
   const size = preview ?? getImageWorldSize()
   if (!bounds || !size || !bounds.width || !bounds.height) return
@@ -211,7 +234,7 @@ function keyup(event: KeyboardEvent) {
 }
 function focus() { stage.value?.focus({ preventScroll: true }) }
 watch(() => props.active, active => { if (!active) resetInput() })
-defineExpose({ addImage, addImageAt, getImageWorldSize, getImageRect, cameraZoom, keydown, keyup, selectedPath, focus })
+defineExpose({ addImage, addImageAt, getImageWorldSize, getImageRect, cameraZoom, keydown, keyup, selectedPath, imagePaths, focus })
 onMounted(() => {
   observer = new ResizeObserver(([entry]) => {
     if (!entry.contentRect.width || !entry.contentRect.height) return
@@ -235,12 +258,15 @@ onBeforeUnmount(() => {
         <button aria-label="放大画板" title="放大画板" @click="changeCameraZoom(1.2)"><Plus :size="15" /></button>
         <button :disabled="!items.length" class="board-text-button" :title="`显示全部图片（${items.length}）`" @click="frameImages(items)"><Scan :size="15" />显示全部</button>
       </div>
-      <span v-if="selected" class="board-selection-name" :title="selected.name">{{ selected.name }}</span>
+      <div class="board-toolbar-end">
+        <span v-if="selected" class="board-selection-name" :title="selected.name">{{ selected.name }}</span>
+        <div v-if="$slots.close" class="viewer-controls"><slot name="close" /></div>
+      </div>
     </div>
     <div class="board-workspace">
     <div ref="stage" class="board-stage" :class="{ panning: spaceHeld, interacting, 'drop-over': dropOver }" tabindex="0" aria-label="画板。拖动图片移动，右下角缩放；拖动空白处平移，滚轮缩放视野。" @pointerdown="startGesture($event, 'pan')" @pointermove="moveGesture" @pointerup="endGesture" @pointercancel="endGesture" @lostpointercapture="endGesture" @wheel.prevent="wheel">
       <div class="board-world" :style="worldStyle">
-        <div v-for="item in items" :key="item.id" class="board-image" :class="{ selected: item.id === selectedId, failed: item.failed }" :style="{ left: `${item.x}px`, top: `${item.y}px`, width: `${item.width}px`, height: `${item.height}px`, zIndex: item.layer, transform: item.dragX === undefined || item.dragY === undefined ? undefined : `translate(${item.dragX - item.x}px, ${item.dragY - item.y}px)`, '--board-outline-width': `${1.5 / camera.zoom}px` }" @pointerdown.stop="startGesture($event, 'move', item)">
+        <div v-for="item in items" :key="item.id" class="board-image" :data-image-id="item.id" :class="{ selected: item.id === selectedId, failed: item.failed }" :style="{ left: `${item.x}px`, top: `${item.y}px`, width: `${item.width}px`, height: `${item.height}px`, zIndex: item.layer, transform: item.dragX === undefined || item.dragY === undefined ? undefined : `translate(${item.dragX - item.x}px, ${item.dragY - item.y}px)`, '--board-outline-width': `${1.5 / camera.zoom}px` }" @pointerdown.stop="startGesture($event, 'move', item)">
           <img :src="item.src" :alt="item.name" :draggable="false" v-show="item.ready" @load="loaded(item, $event)" @error="imageFailed(item)" />
           <span v-if="!item.ready" class="board-image-status">{{ item.failed ? '无法显示此图片' : '加载中…' }}</span>
           <template v-if="item.id === selectedId">
@@ -268,6 +294,7 @@ onBeforeUnmount(() => {
 .board-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 16px; border-bottom: 1px solid var(--viewer-line); background: var(--viewer-toolbar); }
 .board-viewport-controls, .board-image-controls { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .board-viewport-controls { flex-shrink: 0; }
+.board-toolbar-end { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); min-width: 0; }
 .board-workspace { position: relative; display: flex; flex: 1; min-height: 0; }
 .board-image-controls { position: absolute; z-index: 2; right: 12px; top: 50%; transform: translateY(-50%); flex-direction: column; max-height: calc(100% - 16px); overflow-y: auto; padding: 6px; border: 1px solid var(--viewer-grid); border-radius: var(--radius-control); background: var(--viewer-toolbar); }
 .board-image-controls button { width: 36px; height: 36px; }

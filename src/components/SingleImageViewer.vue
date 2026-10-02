@@ -110,22 +110,26 @@ onBeforeUnmount(() => { observer?.disconnect() })
   <section class="single-image-viewer viewer-surface" aria-label="单图查看" @keydown="keydown">
     <header class="viewer-header" data-tauri-drag-region>
       <slot name="modes" />
-      <strong :title="image?.name">{{ image?.name }}</strong>
-      <span>{{ index + 1 }} / {{ images.length }}</span>
-      <div class="viewer-controls">
+    </header>
+    <div class="viewer-workspace">
+      <div class="viewer-info">
+        <strong :title="image?.name">{{ image?.name }}</strong>
+        <span>{{ index + 1 }} / {{ images.length }}</span>
+      </div>
+      <div class="viewer-controls" role="group" aria-label="图片操作">
         <button title="缩小" aria-label="缩小" :disabled="loading || failed" @click="changeZoom(1 / 1.2)"><ZoomOut :size="18" /></button>
         <button class="viewer-scale" :disabled="loading || failed" :title="fit ? '原始大小' : '适应窗口'" @click="toggleFit">{{ fit ? '适应' : Math.round(scale * 100) + '%' }}</button>
         <button title="放大" aria-label="放大" :disabled="loading || failed" @click="changeZoom(1.2)"><ZoomIn :size="18" /></button>
         <slot name="close" />
       </div>
-    </header>
-    <div ref="canvas" class="viewer-canvas" :class="{ dragging }" tabindex="0" aria-label="图片，左右方向键切换，加减键缩放" @wheel.prevent="wheel" @dblclick="toggleFit" @pointerdown="startPan" @pointermove="movePan" @pointerup="dragging = false" @pointercancel="dragging = false" @lostpointercapture="dragging = false">
-      <img v-if="image" :key="image.path" :src="image.src" :alt="image.name" :style="imageStyle" :draggable="false" v-show="!loading && !failed" @load="loaded" @error="failed = true; loading = false" />
-      <span v-if="loading" class="viewer-message" role="status">加载中…</span>
-      <span v-else-if="failed" class="viewer-message" role="alert">无法显示此图片</span>
+      <div ref="canvas" class="viewer-canvas" :class="{ dragging }" tabindex="0" aria-label="图片，左右方向键切换，加减键缩放" @wheel.prevent="wheel" @dblclick="toggleFit" @pointerdown="startPan" @pointermove="movePan" @pointerup="dragging = false" @pointercancel="dragging = false" @lostpointercapture="dragging = false">
+        <img v-if="image" :key="image.path" :src="image.src" :alt="image.name" :style="imageStyle" :draggable="false" v-show="!loading && !failed" @load="loaded" @error="failed = true; loading = false" />
+        <span v-if="loading" class="viewer-message" role="status">加载中…</span>
+        <span v-else-if="failed" class="viewer-message" role="alert">无法显示此图片</span>
+      </div>
+      <button v-if="images.length > 1" class="viewer-arrow previous" aria-label="上一张" @click="select(index - 1)"><ChevronLeft /></button>
+      <button v-if="images.length > 1" class="viewer-arrow next" aria-label="下一张" @click="select(index + 1)"><ChevronRight /></button>
     </div>
-    <button v-if="images.length > 1" class="viewer-arrow previous" aria-label="上一张" @click="select(index - 1)"><ChevronLeft /></button>
-    <button v-if="images.length > 1" class="viewer-arrow next" aria-label="下一张" @click="select(index + 1)"><ChevronRight /></button>
     <footer v-if="images.length > 1" class="viewer-footer">
       <ThumbnailStrip :images="images" :selected-path="image?.path">
         <template #default="{ image: item, index: position }">
@@ -141,12 +145,21 @@ onBeforeUnmount(() => { observer?.disconnect() })
 
 <style scoped>
 
-.viewer-scale { min-width: 64px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.viewer-controls .viewer-scale { min-width: 64px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.viewer-workspace { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; }
+.viewer-info { position: absolute; z-index: 1; top: var(--space-4); left: var(--content-inset); display: flex; flex-direction: column; gap: var(--space-1); max-width: min(480px, calc(100% - 264px)); padding: 6px 10px; border-radius: var(--radius-control); background: var(--viewer-surface); pointer-events: none; }
+.viewer-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; line-height: 22px; }
+.viewer-info span { color: var(--viewer-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.viewer-workspace > .viewer-controls { position: absolute; z-index: 1; top: var(--space-3); right: var(--content-inset); padding: var(--space-1); border-radius: var(--radius-control); background: var(--viewer-surface); }
 .viewer-canvas { flex: 1; min-height: 0; position: relative; overflow: hidden; touch-action: none; cursor: grab; display: flex; align-items: center; justify-content: center; }
 .viewer-canvas.dragging { cursor: grabbing; }
 .viewer-canvas img { flex: none; max-width: none; max-height: none; object-fit: contain; user-select: none; pointer-events: none; }
 .viewer-message { color: var(--viewer-muted); font-size: 14px; }
-.viewer-arrow { position: absolute; top: 50%; background: var(--viewer-raised); border-color: #514b56; }
+.viewer-arrow { position: absolute; top: 50%; margin-top: -18px; background: var(--viewer-raised); border-color: var(--viewer-grid); }
 .previous { left: 16px; }.next { right: 16px; }
 .viewer-canvas:focus-visible { outline: 1px solid var(--viewer-accent); outline-offset: -1px; }
+@media (max-width: 650px) {
+  .viewer-info { max-width: calc(100% - 230px); }
+  .viewer-info strong { font-size: 12px; }
+}
 </style>

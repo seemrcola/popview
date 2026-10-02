@@ -1,6 +1,6 @@
 import { onBeforeUnmount, onMounted } from 'vue'
 
-const selector = '.welcome-launch, .sidebar-open, .icon-button, .collection-pages button, .viewer-header button, .viewer-arrow'
+const selector = '.welcome-launch, .sidebar-open, .icon-button, .collection-pages button, .viewer-header button, .viewer-controls button, .viewer-arrow'
 
 export function installButtonFeedback(root: HTMLElement) {
   const preference = window.matchMedia('(prefers-reduced-motion: reduce)')

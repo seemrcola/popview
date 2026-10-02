@@ -113,14 +113,17 @@ onBeforeUnmount(deactivate)
   <section class="board-preview viewer-surface" aria-label="画板查看" @keydown="board?.keydown($event)" @keyup="board?.keyup($event)">
     <header class="viewer-header" data-tauri-drag-region>
       <slot name="modes" />
-      <div class="viewer-controls"><slot name="close" /></div>
     </header>
-    <ImageBoard ref="board" :active="active" :drag-point="thumbnailDrag" />
+    <ImageBoard ref="board" :active="active" :drag-point="thumbnailDrag">
+      <template #close><slot name="close" /></template>
+    </ImageBoard>
     <footer class="viewer-footer">
       <ThumbnailStrip :images="images" :selected-path="board?.selectedPath">
         <template #default="{ image: item }">
-          <button class="board-thumbnail" :class="{ selected: board?.selectedPath === item.path }"
-            :aria-label="'添加到画板：' + item.name" :title="'点击或拖入画板：' + item.name" :draggable="false"
+          <button class="board-thumbnail" :class="{ 'in-board': board?.imagePaths.has(item.path), selected: board?.selectedPath === item.path }"
+            :aria-pressed="board?.imagePaths.has(item.path) ?? false" :aria-current="board?.selectedPath === item.path ? 'true' : undefined"
+            :aria-label="(board?.imagePaths.has(item.path) ? '选中画板图片：' : '添加到画板：') + item.name"
+            :title="(board?.imagePaths.has(item.path) ? '已在画板中，点击选中：' : '点击或拖入画板：') + item.name" :draggable="false"
             @dragstart.prevent @pointerdown="startThumbnailDrag($event, item)" @pointermove="moveThumbnailDrag"
             @pointerup="finishThumbnailDrag" @pointercancel="cancelThumbnailDrag" @lostpointercapture="lostThumbnailCapture"
             @click="clickThumbnail($event, item)"><ImageThumbnail :src="item.thumbnailSrc" /></button>
