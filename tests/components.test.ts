@@ -17,6 +17,28 @@ const folders = (count: number): DirectoryEntry[] => Array.from({ length: count 
 }))
 
 describe('collection', () => {
+  it('measures connected rows and remeasures them when the view regroups the content', async () => {
+    const measurements: Array<{ connected: boolean; index: string | undefined; grid: boolean }> = []
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function () {
+      if (!this.classList.contains('virtual-row')) return 0
+      const grid = !!this.querySelector('.folder-cards')
+      measurements.push({ connected: this.isConnected, index: this.dataset.index, grid })
+      return this.isConnected ? (grid ? 174 : 68) : 0
+    })
+    const wrapper = mount(ImageCollection, {
+      props: { folders: folders(12), images: [], viewMode: 'grid', version: 1, imagesFor: () => [] },
+      attachTo: document.body,
+    })
+    await flushPromises()
+    expect(measurements.length).toBeGreaterThan(0)
+    expect(measurements.every(measurement => measurement.connected)).toBe(true)
+    const initialCount = measurements.length
+    await wrapper.setProps({ viewMode: 'list' })
+    await flushPromises()
+    expect(measurements.every(measurement => measurement.connected)).toBe(true)
+    expect(measurements.slice(initialCount)).toContainEqual({ connected: true, index: '0', grid: false })
+  })
+
   it('renders folders before images as clickable list rows without loading covers', async () => {
     const imagesFor = vi.fn(() => [])
     const wrapper = mount(ImageCollection, { props: { folders: folders(2), images: images(1), viewMode: 'list', version: 1, imagesFor } })

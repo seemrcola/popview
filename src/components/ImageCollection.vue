@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ChevronRight } from 'lucide-vue-next'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import CollectionEmpty from './CollectionEmpty.vue'
@@ -58,6 +58,8 @@ const rows = computed<CollectionRow[]>(() => {
 const virtualizerOptions = computed(() => ({
   count: rows.value.length,
   getScrollElement: () => scroll.value ?? null,
+  // A row index can represent different content after regrouping the grid.
+  getItemKey: (index: number) => `${props.viewMode}:${columns.value}:${rows.value[index]?.items[0]?.path}`,
   estimateSize: () => props.viewMode === 'grid' ? 230 : 68,
   overscan: 4,
   initialRect: { width: 0, height: 600 },
@@ -68,7 +70,7 @@ const virtualRows = computed(() => {
   const visible = virtualizer.value.getVirtualItems()
   if (visible.length || !rows.value.length) return visible
   return rows.value.slice(0, 8).map((_, index) => ({
-    key: index,
+    key: virtualizer.value.options.getItemKey(index),
     index,
     start: index * estimateRowSize.value,
     size: estimateRowSize.value,
@@ -87,6 +89,17 @@ function formatSize(bytes: number) {
 
 function isFolder(item: DirectoryEntry | ImageItem): item is DirectoryEntry {
   return 'is_dir' in item && item.is_dir
+}
+
+function measureRow(element: HTMLElement | null) {
+  if (!element) {
+    virtualizer.value.measureElement(null)
+    return
+  }
+  // Function refs run before insertion; measure after Vue commits the layout.
+  void nextTick(() => {
+    if (element.isConnected) virtualizer.value.measureElement(element)
+  })
 }
 
 function resetScroll() {
@@ -113,7 +126,7 @@ onBeforeUnmount(() => sizeObserver?.disconnect())
     <div v-if="rows.length" class="virtual-collection" :style="{ height: `${totalSize}px` }">
       <div v-for="virtualRow in virtualRows" :key="String(virtualRow.key)" class="virtual-row"
         :class="{ 'folder-row-last': rows[virtualRow.index].kind === 'folders' && rows[virtualRow.index].lastInGroup }"
-        :data-index="virtualRow.index" :ref="(element) => virtualizer.measureElement(element as HTMLElement)"
+        :data-index="virtualRow.index" :ref="(element) => measureRow(element as HTMLElement | null)"
         :style="{ transform: `translateY(${virtualRow.start}px)` }">
         <div v-if="rows[virtualRow.index].kind === 'folders'" class="folder-cards"
           :style="{ '--collection-columns': columns }">
