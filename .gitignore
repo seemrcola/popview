@@ -3,6 +3,6 @@ dist/
 src-tauri/target/
 *.tsbuildinfo
 .DS_Store
-outputs/*-preview.jpg
+outputs/**/*preview*.*
 outputs/viewer-*.jpg
 outputs/release/
