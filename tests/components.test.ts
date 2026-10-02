@@ -50,32 +50,27 @@ describe('collection', () => {
     expect(wrapper.find('.media-list').exists()).toBe(false)
   })
 
-  it('shares the page limit across folders and images and retains the page when switching views', async () => {
+  it('virtualizes long lists and keeps folder navigation available', async () => {
     const wrapper = mount(ImageCollection, { props: { folders: folders(121), images: images(1), viewMode: 'list', version: 1, imagesFor: () => [] } })
-    expect(wrapper.findAll('.list-item')).toHaveLength(120)
-    await wrapper.get('[aria-label="下一页"]').trigger('click')
-    expect(wrapper.findAll('.list-item')).toHaveLength(2)
-    expect(wrapper.findAll('.media-name').map(name => name.text())).toEqual(['Folder 120', '0.png'])
-    await wrapper.setProps({ viewMode: 'grid' })
-    expect(wrapper.getComponent(FolderCard).props('folder').path).toBe('/photos/folder-120')
-    expect(wrapper.get('[role="status"]').text()).toBe('2 / 2')
-    await wrapper.setProps({ viewMode: 'list' })
+    expect(wrapper.findAll('.list-item').length).toBeGreaterThan(0)
+    expect(wrapper.findAll('.list-item').length).toBeLessThan(122)
+    expect(wrapper.find('[aria-label="图片列表分页"]').exists()).toBe(false)
     await wrapper.get('.folder-list-item').trigger('click')
-    expect(wrapper.emitted('selectFolder')?.[0]).toEqual(['/photos/folder-120'])
+    expect(wrapper.emitted('selectFolder')?.[0]).toEqual(['/photos/folder-0'])
+    await wrapper.setProps({ viewMode: 'grid' })
+    expect(wrapper.find('.folder-cards').exists()).toBe(true)
   })
 
-  it('caps mounted items, uses thumbnails, and opens the original image model', async () => {
+  it('virtualizes image items, uses thumbnails, and opens the original image model', async () => {
     const items = images(250)
     const wrapper = mount(ImageCollection, { props: { folders: [], images: items, viewMode: 'grid', version: 1, imagesFor: () => [] } })
-    expect(wrapper.findAll('.media-item')).toHaveLength(120)
+    expect(wrapper.findAll('.media-item').length).toBeGreaterThan(0)
+    expect(wrapper.findAll('.media-item').length).toBeLessThan(items.length)
     expect(wrapper.find('img').attributes('src')).toBe('thumbnail-0')
     await wrapper.find('.media-item').trigger('click')
     expect(wrapper.emitted('openImage')?.[0][0]).toEqual(items[0])
-    await wrapper.get('[aria-label="下一页"]').trigger('click')
-    expect(wrapper.find('img').attributes('src')).toBe('thumbnail-120')
     await wrapper.setProps({ images: items.slice(0, 1) })
     expect(wrapper.findAll('.media-item')).toHaveLength(1)
-    expect(wrapper.find('[aria-label="图片列表分页"]').exists()).toBe(false)
   })
 
   it('shows a usable placeholder when thumbnail decoding fails', async () => {

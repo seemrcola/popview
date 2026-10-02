@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { ChevronRight } from 'lucide-vue-next'
+import { useVirtualizer } from '@tanstack/vue-virtual'
 import CollectionEmpty from './CollectionEmpty.vue'
 import FolderCard from './FolderCard.vue'
 import FolderIcon from './FolderIcon.vue'
@@ -23,14 +24,60 @@ const emit = defineEmits<{
   openImage: [image: ImageItem]
   visibility: [path: string, visible: boolean, version: number]
 }>()
-const PAGE_SIZE = 120
-const page = ref(0)
+
+type CollectionRow = {
+  kind: 'folders' | 'images' | 'list'
+  items: Array<DirectoryEntry | ImageItem>
+  lastInGroup: boolean
+}
+
 const scroll = ref<HTMLElement>()
-useCollectionMotion(scroll, () => [props.version, props.viewMode, page.value])
-const pageCount = computed(() => Math.max(1, Math.ceil((props.folders.length + props.images.length) / PAGE_SIZE)))
-const pageFolders = computed(() => props.folders.slice(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE))
-const pageImages = computed(() => props.images.slice(Math.max(0, page.value * PAGE_SIZE - props.folders.length), Math.max(0, (page.value + 1) * PAGE_SIZE - props.folders.length)))
+const contentWidth = ref(0)
 const dateFormat = new Intl.DateTimeFormat('zh-CN', { month: 'short', day: 'numeric' })
+let sizeObserver: ResizeObserver | undefined
+
+const columns = computed(() => props.viewMode === 'list'
+  ? 1
+  : Math.max(1, Math.floor((contentWidth.value + 24) / (180 + 24))))
+const rows = computed<CollectionRow[]>(() => {
+  const result: CollectionRow[] = []
+  const groups = props.viewMode === 'list'
+    ? [{ kind: 'list' as const, items: [...props.folders, ...props.images] }]
+    : [
+        { kind: 'folders' as const, items: [...props.folders] },
+        { kind: 'images' as const, items: [...props.images] },
+      ]
+  for (const group of groups) {
+    for (let index = 0; index < group.items.length; index += columns.value) {
+      const items = group.items.slice(index, index + columns.value)
+      result.push({ kind: group.kind, items, lastInGroup: index + columns.value >= group.items.length })
+    }
+  }
+  return result
+})
+const virtualizerOptions = computed(() => ({
+  count: rows.value.length,
+  getScrollElement: () => scroll.value ?? null,
+  estimateSize: () => props.viewMode === 'grid' ? 230 : 68,
+  overscan: 4,
+  initialRect: { width: 0, height: 600 },
+}))
+const virtualizer = useVirtualizer(virtualizerOptions)
+const estimateRowSize = computed(() => props.viewMode === 'grid' ? 230 : 68)
+const virtualRows = computed(() => {
+  const visible = virtualizer.value.getVirtualItems()
+  if (visible.length || !rows.value.length) return visible
+  return rows.value.slice(0, 8).map((_, index) => ({
+    key: index,
+    index,
+    start: index * estimateRowSize.value,
+    size: estimateRowSize.value,
+    end: (index + 1) * estimateRowSize.value,
+    lane: 0,
+  }))
+})
+const totalSize = computed(() => Math.max(virtualizer.value.getTotalSize(), rows.value.length * estimateRowSize.value))
+useCollectionMotion(scroll, () => [props.version, props.viewMode])
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
@@ -38,56 +85,79 @@ function formatSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-function changePage(next: number) {
-  page.value = Math.max(0, Math.min(pageCount.value - 1, next))
-  scroll.value?.scrollTo({ top: 0 })
+function isFolder(item: DirectoryEntry | ImageItem): item is DirectoryEntry {
+  return 'is_dir' in item && item.is_dir
 }
 
-watch(() => [props.version, props.images, props.folders], () => {
-  changePage(0)
+function resetScroll() {
+  virtualizer.value.scrollToOffset(0)
+}
+
+watch(() => [props.version, props.viewMode, props.images, props.folders], resetScroll, { flush: 'post' })
+onMounted(() => {
+  sizeObserver = new ResizeObserver(([entry]) => {
+    if (entry?.contentRect.width) contentWidth.value = entry.contentRect.width
+  })
+  if (scroll.value) {
+    sizeObserver.observe(scroll.value)
+    contentWidth.value = scroll.value.clientWidth
+  }
 })
+onBeforeUnmount(() => sizeObserver?.disconnect())
 </script>
 
 <template>
   <CollectionEmpty v-if="!folders.length && !images.length" :query="query" :loading="loading" :error="error" />
   <div v-else ref="scroll" class="media-scroll">
     <CollectionEmpty v-if="query?.trim() && !images.length && !loading && !error" compact :query="query" />
-    <div v-if="viewMode === 'grid' && pageFolders.length" class="folder-cards">
-      <FolderCard v-for="folder in pageFolders" :key="`${version}:${folder.path}`" :folder="folder"
-        :images="imagesFor(folder.path)" :version="version" @select="emit('selectFolder', $event)"
-        @visibility="(path, visible, generation) => emit('visibility', path, visible, generation)" />
-    </div>
-    <div v-if="pageImages.length || (viewMode === 'list' && pageFolders.length)" :class="viewMode === 'grid' ? 'media-grid' : 'media-list'">
-      <template v-if="viewMode === 'list'">
-        <button v-for="folder in pageFolders" :key="folder.path" class="media-item list-item folder-list-item"
-          :title="folder.name" @click="emit('selectFolder', folder.path)">
-          <div class="media-preview folder-list-preview"><FolderIcon class="folder-list-icon" /></div>
-          <div class="media-name">{{ folder.name }}</div>
-          <div class="media-meta">文件夹</div>
-          <ChevronRight class="list-open" :size="16" :stroke-width="1.7" aria-hidden="true" />
-        </button>
-      </template>
-      <button v-for="item in pageImages" :key="item.path" class="media-item"
-        :class="{ 'list-item': viewMode === 'list' }" :title="item.name" @click="emit('openImage', item)">
-        <div class="media-preview">
-          <ImageThumbnail :src="item.thumbnailSrc" :alt="item.name" fit="cover" />
+    <div v-if="rows.length" class="virtual-collection" :style="{ height: `${totalSize}px` }">
+      <div v-for="virtualRow in virtualRows" :key="String(virtualRow.key)" class="virtual-row"
+        :class="{ 'folder-row-last': rows[virtualRow.index].kind === 'folders' && rows[virtualRow.index].lastInGroup }"
+        :data-index="virtualRow.index" :ref="(element) => virtualizer.measureElement(element as HTMLElement)"
+        :style="{ transform: `translateY(${virtualRow.start}px)` }">
+        <div v-if="rows[virtualRow.index].kind === 'folders'" class="folder-cards"
+          :style="{ '--collection-columns': columns }">
+          <FolderCard v-for="folder in rows[virtualRow.index].items" :key="folder.path"
+            :folder="folder" :images="imagesFor(folder.path)" :version="version"
+            @select="emit('selectFolder', $event)"
+            @visibility="(path, visible, generation) => emit('visibility', path, visible, generation)" />
         </div>
-        <div class="media-name">{{ item.name }}</div>
-        <div class="media-meta">{{ formatSize(item.size) }} · {{ item.modified == null ? '日期未知' : dateFormat.format(new Date(item.modified * 1000)) }}</div>
-        <ChevronRight v-if="viewMode === 'list'" class="list-open" :size="16" :stroke-width="1.7" aria-hidden="true" />
-      </button>
+        <div v-else-if="rows[virtualRow.index].kind === 'images'" class="media-grid"
+          :style="{ '--collection-columns': columns }">
+          <button v-for="item in rows[virtualRow.index].items as ImageItem[]" :key="item.path" class="media-item"
+            :title="item.name" @click="emit('openImage', item)">
+            <div class="media-preview"><ImageThumbnail :src="item.thumbnailSrc" :alt="item.name" fit="cover" /></div>
+            <div class="media-name">{{ item.name }}</div>
+            <div class="media-meta">{{ formatSize(item.size) }} · {{ item.modified == null ? '日期未知' : dateFormat.format(new Date(item.modified * 1000)) }}</div>
+          </button>
+        </div>
+        <div v-else class="media-list">
+          <template v-for="item in rows[virtualRow.index].items" :key="item.path">
+            <button v-if="isFolder(item)" class="media-item list-item folder-list-item" :title="item.name"
+              @click="emit('selectFolder', item.path)">
+              <div class="media-preview folder-list-preview"><FolderIcon class="folder-list-icon" /></div>
+              <div class="media-name">{{ item.name }}</div><div class="media-meta">文件夹</div>
+              <ChevronRight class="list-open" :size="16" :stroke-width="1.7" aria-hidden="true" />
+            </button>
+            <button v-else class="media-item list-item" :title="item.name" @click="emit('openImage', item)">
+              <div class="media-preview"><ImageThumbnail :src="item.thumbnailSrc" :alt="item.name" fit="cover" /></div>
+              <div class="media-name">{{ item.name }}</div>
+              <div class="media-meta">{{ formatSize(item.size) }} · {{ item.modified == null ? '日期未知' : dateFormat.format(new Date(item.modified * 1000)) }}</div>
+              <ChevronRight class="list-open" :size="16" :stroke-width="1.7" aria-hidden="true" />
+            </button>
+          </template>
+        </div>
+      </div>
     </div>
-    <nav v-if="pageCount > 1" class="collection-pages" aria-label="图片列表分页">
-      <button :disabled="page === 0" aria-label="上一页" @click="changePage(page - 1)"><ChevronLeft :size="16" />上一页</button>
-      <span role="status">{{ page + 1 }} / {{ pageCount }}</span>
-      <button :disabled="page === pageCount - 1" aria-label="下一页" @click="changePage(page + 1)">下一页<ChevronRight :size="16" /></button>
-    </nav>
   </div>
 </template>
 
 <style scoped>
 .media-scroll { min-height: 0; flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--content-inset); scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; overscroll-behavior: contain; }
-.media-grid, .folder-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--grid-min)), 1fr)); gap: var(--grid-gap); }
+.virtual-collection { position: relative; width: 100%; }
+.virtual-row { position: absolute; top: 0; left: 0; width: 100%; contain: layout style; }
+.folder-row-last { padding-bottom: var(--space-8); }
+.media-grid, .folder-cards { display: grid; grid-template-columns: repeat(var(--collection-columns), minmax(0, 1fr)); gap: var(--grid-gap); }
 .media-grid { align-content: start; }
 .media-item { min-width: 0; padding: 0; border: 0; border-radius: var(--radius-media); background: transparent; color: var(--ink); text-align: left; overflow: hidden; transition: background 180ms ease; }
 .media-item:not(.list-item):hover { background: var(--content-hover); }
@@ -99,7 +169,6 @@ watch(() => [props.version, props.images, props.folders], () => {
 .media-item:active .media-meta { color: var(--ink); }
 .media-preview { transition: transform var(--motion-settle) var(--ease-spring); }
 .media-item:active .media-preview { transform: scale(.98); transition-duration: 80ms; }
-.media-item:focus-visible { outline-offset: -2px; }
 .media-list { display: flex; flex-direction: column; gap: 0; }
 .list-item { position: relative; isolation: isolate; width: 100%; min-height: 68px; display: flex; align-items: center; gap: 14px; padding: 10px 42px 10px 12px; border-bottom: 1px solid var(--line); border-radius: 0; }
 .list-item::before { content: ''; position: absolute; z-index: -1; inset: 4px 0; border-radius: var(--radius-control); background: transparent; transition: background-color 100ms ease; pointer-events: none; }
@@ -121,18 +190,12 @@ watch(() => [props.version, props.images, props.folders], () => {
 }
 @media (hover: none) { .list-open { opacity: .6; transform: translate(0, -50%); } }
 .folder-list-preview .folder-list-icon { width: 36px; height: 32px; }
-.folder-cards { margin-bottom: var(--space-8); }
-.folder-cards:last-child { margin-bottom: 0; }
-.collection-pages { display: flex; justify-content: center; align-items: center; gap: 20px; padding: var(--space-6) 0 var(--space-1); color: var(--ink-muted); font-size: var(--font-meta); font-variant-numeric: tabular-nums; }
-.collection-pages button { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 8px 12px; border: 0; border-radius: var(--radius-control); background: var(--surface-subtle); color: var(--ink); font-weight: 600; transition: background 160ms ease; }
-.collection-pages button:hover:not(:disabled) { background: var(--content-hover); }
-.collection-pages button:active:not(:disabled) { background: var(--content-pressed); }
 @media (max-width: 760px) {
   .list-item { flex-wrap: wrap; gap: 6px 12px; }
   .list-item .media-meta { width: 100%; padding-left: 68px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .media-item, .collection-pages button { transition: none; }
+  .media-item { transition: none; }
   .media-preview { transition: none; }
   .media-item:active .media-preview { transform: none; }
   .list-item::before, .list-open { transition: none; }
