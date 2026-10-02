@@ -13,9 +13,7 @@ const dragPreviewImage = ref<HTMLImageElement>()
 const active = ref(true)
 const thumbnailDrag = ref<{ src: string; x: number; y: number; width: number; height: number } | null>(null)
 let pendingDrag: { image: ImageSource; pointerId: number; x: number; y: number; target: HTMLElement } | undefined
-const pendingDropId = ref<number>()
 const previewRect = computed(() => {
-  if (pendingDropId.value !== undefined) return board.value?.getImageRect(pendingDropId.value)
   const drag = thumbnailDrag.value
   if (!drag) return null
   const zoom = board.value?.cameraZoom ?? 1
@@ -23,7 +21,7 @@ const previewRect = computed(() => {
 })
 let suppressThumbnailClick = false
 function startThumbnailDrag(event: PointerEvent, image: ImageSource) {
-  if (event.button !== 0 || pendingDrag || pendingDropId.value !== undefined) return
+  if (event.button !== 0 || pendingDrag) return
   suppressThumbnailClick = false
   const target = event.currentTarget as HTMLElement
   pendingDrag = { image, pointerId: event.pointerId, x: event.clientX, y: event.clientY, target }
@@ -56,10 +54,10 @@ function finishThumbnailDrag(event: PointerEvent) {
     event.preventDefault()
     thumbnailDrag.value.x = event.clientX
     thumbnailDrag.value.y = event.clientY
-    pendingDropId.value = board.value?.addImageAt(pendingDrag.image, event.clientX, event.clientY, thumbnailDrag.value)
+    board.value?.addImageAt(pendingDrag.image, event.clientX, event.clientY)
   }
   releaseThumbnailPointer()
-  if (pendingDropId.value === undefined) thumbnailDrag.value = null
+  thumbnailDrag.value = null
 }
 function releaseThumbnailPointer() {
   const pending = pendingDrag
@@ -68,16 +66,10 @@ function releaseThumbnailPointer() {
 }
 function cancelThumbnailDrag() {
   releaseThumbnailPointer()
-  pendingDropId.value = undefined
   thumbnailDrag.value = null
 }
 function lostThumbnailCapture(event: PointerEvent) {
   if (pendingDrag?.pointerId === event.pointerId) cancelThumbnailDrag()
-}
-function imagePresented(id: number) {
-  if (pendingDropId.value !== id) return
-  pendingDropId.value = undefined
-  thumbnailDrag.value = null
 }
 function clickThumbnail(event: MouseEvent, image: ImageSource) {
   if (suppressThumbnailClick && event.detail > 0) {
@@ -90,7 +82,7 @@ function clickThumbnail(event: MouseEvent, image: ImageSource) {
   const size = thumbnail && thumbnail.naturalWidth > 0 && thumbnail.naturalHeight > 0
     ? board.value?.getImageWorldSize(thumbnail.naturalWidth, thumbnail.naturalHeight)
     : undefined
-  board.value?.addImage(image, undefined, size ? { src: image.thumbnailSrc, ...size } : undefined)
+  board.value?.addImage(image, undefined, size ? { ...size } : undefined)
 }
 function cancelDialog() {
   if (pendingDrag || thumbnailDrag.value) cancelThumbnailDrag()
@@ -123,7 +115,7 @@ onBeforeUnmount(deactivate)
       <slot name="modes" />
       <div class="viewer-controls"><slot name="close" /></div>
     </header>
-    <ImageBoard ref="board" :active="active" :drag-point="pendingDropId === undefined ? thumbnailDrag : null" @presented="imagePresented" />
+    <ImageBoard ref="board" :active="active" :drag-point="thumbnailDrag" />
     <footer class="viewer-footer">
       <ThumbnailStrip :images="images" :selected-path="board?.selectedPath">
         <template #default="{ image: item }">
