@@ -5,7 +5,7 @@ import { Focus, Minus, Plus, Scan, Trash2 } from 'lucide-vue-next'
 import type { ImageSource } from '../types/media'
 
 type PlacementPreview = { src: string; width: number; height: number }
-type BoardImage = ImageSource & { id: number; x: number; y: number; width: number; height: number; ready: boolean; failed: boolean; layer: number; previewSrc?: string; fixedSize: boolean }
+type BoardImage = ImageSource & { id: number; x: number; y: number; width: number; height: number; ready: boolean; failed: boolean; layer: number; previewSrc?: string; fixedSize: boolean; dragX?: number; dragY?: number }
 type Gesture = { type: 'pan' | 'move' | 'resize'; pointerId: number; clientX: number; clientY: number; x: number; y: number; width: number; height: number; item?: BoardImage }
 const props = defineProps<{ active: boolean; dragPoint: { x: number; y: number } | null }>()
 const emit = defineEmits<{ presented: [id: number] }>()
@@ -169,8 +169,8 @@ function moveGesture(event: PointerEvent) {
   } else if (gesture.item) {
     const item = gesture.item
     if (gesture.type === 'move') {
-      item.x = gesture.x + deltaX / camera.value.zoom
-      item.y = gesture.y + deltaY / camera.value.zoom
+      item.dragX = gesture.x + deltaX / camera.value.zoom
+      item.dragY = gesture.y + deltaY / camera.value.zoom
     } else {
       const width = gesture.width + deltaX / camera.value.zoom
       const height = gesture.height + deltaY / camera.value.zoom
@@ -183,6 +183,12 @@ function moveGesture(event: PointerEvent) {
 }
 function endGesture(event?: PointerEvent) {
   if (event && gesture && event.pointerId !== gesture.pointerId) return
+  if (gesture?.type === 'move' && gesture.item?.dragX !== undefined && gesture.item.dragY !== undefined) {
+    gesture.item.x = gesture.item.dragX
+    gesture.item.y = gesture.item.dragY
+    gesture.item.dragX = undefined
+    gesture.item.dragY = undefined
+  }
   const pointerId = gesture?.pointerId
   gesture = undefined
   interacting.value = false
@@ -250,7 +256,7 @@ onBeforeUnmount(() => {
     <div class="board-workspace">
     <div ref="stage" class="board-stage" :class="{ panning: spaceHeld, interacting, 'drop-over': dropOver }" tabindex="0" aria-label="画板。拖动图片移动，右下角缩放；拖动空白处平移，滚轮缩放视野。" @pointerdown="startGesture($event, 'pan')" @pointermove="moveGesture" @pointerup="endGesture" @pointercancel="endGesture" @lostpointercapture="endGesture" @wheel.prevent="wheel">
       <div class="board-world" :style="worldStyle">
-        <div v-for="item in items" :key="item.id" class="board-image" :class="{ selected: item.id === selectedId, failed: item.failed }" :style="{ left: `${item.x}px`, top: `${item.y}px`, width: `${item.width}px`, height: `${item.height}px`, zIndex: item.layer, outlineWidth: `${1.5 / camera.zoom}px` }" @pointerdown.stop="startGesture($event, 'move', item)">
+        <div v-for="item in items" :key="item.id" class="board-image" :class="{ selected: item.id === selectedId, failed: item.failed }" :style="{ left: `${item.x}px`, top: `${item.y}px`, width: `${item.width}px`, height: `${item.height}px`, zIndex: item.layer, transform: item.dragX === undefined || item.dragY === undefined ? undefined : `translate3d(${item.dragX - item.x}px, ${item.dragY - item.y}px, 0)`, '--board-outline-width': `${1.5 / camera.zoom}px` }" @pointerdown.stop="startGesture($event, 'move', item)">
           <img v-if="item.previewSrc && !item.ready" class="board-image-preview" :src="item.previewSrc" alt="" :draggable="false" @load="previewLoaded(item, $event)" @error="previewFailed(item)" />
           <img :src="item.src" :alt="item.name" :draggable="false" v-show="item.ready" @load="loaded(item, $event)" @error="imageFailed(item)" />
           <span v-if="!item.ready && (!item.previewSrc || item.failed)" class="board-image-status" :class="{ 'over-preview': !!item.previewSrc }">{{ item.failed ? '无法显示此图片' : '加载中…' }}</span>
@@ -293,8 +299,8 @@ button:focus-visible { outline: 2px solid var(--viewer-accent); outline-offset: 
 .board-stage.interacting, .board-stage.panning .board-image { cursor: grabbing; }
 .board-stage.drop-over { box-shadow: inset 0 0 0 2px var(--viewer-accent); }
 .board-world { position: absolute; top: 0; left: 0; width: 0; height: 0; transform-origin: 0 0; }
-.board-image { position: absolute; cursor: move; background: var(--viewer-raised); outline: solid transparent; }
-.board-image.selected { outline-color: var(--viewer-accent); }
+.board-image { position: absolute; cursor: move; background: var(--viewer-raised); box-shadow: 0 0 0 var(--board-outline-width, 0px) transparent; will-change: transform; }
+.board-image.selected { box-shadow: 0 0 0 var(--board-outline-width) var(--viewer-accent); }
 .board-image img { display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; pointer-events: none; }
 .board-image-status { display: grid; place-items: center; height: 100%; font-size: 12px; color: var(--viewer-muted); }
 .board-image-status.over-preview { position: absolute; inset: auto 0 0; height: auto; padding: 6px; background: var(--viewer-raised); }
