@@ -209,9 +209,9 @@ function containsPoint(clientX: number, clientY: number) {
   const bounds = stage.value?.getBoundingClientRect()
   return !!(props.active && bounds && bounds.width > 0 && bounds.height > 0 && clientX >= bounds.left && clientX <= bounds.right && clientY >= bounds.top && clientY <= bounds.bottom)
 }
-function addImageAt(image: ImageSource, clientX: number, clientY: number) {
+function addImageAt(image: ImageSource, clientX: number, clientY: number, preview?: PlacementPreview) {
   if (!containsPoint(clientX, clientY)) return
-  return addImage(image, screenToWorld(clientX, clientY))
+  return addImage(image, screenToWorld(clientX, clientY), preview)
 }
 function keydown(event: KeyboardEvent) {
   if (!props.active || event.altKey || event.ctrlKey || event.metaKey) return

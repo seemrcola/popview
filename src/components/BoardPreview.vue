@@ -11,7 +11,7 @@ const emit = defineEmits<{ close: [] }>()
 const board = ref<InstanceType<typeof ImageBoard>>()
 const dragPreviewImage = ref<HTMLImageElement>()
 const active = ref(true)
-const thumbnailDrag = ref<{ src: string; x: number; y: number; width: number; height: number } | null>(null)
+const thumbnailDrag = ref<{ src: string; x: number; y: number; width: number; height: number; sizeKnown: boolean } | null>(null)
 let pendingDrag: { image: ImageSource; pointerId: number; x: number; y: number; target: HTMLElement } | undefined
 const previewRect = computed(() => {
   const drag = thumbnailDrag.value
@@ -36,7 +36,8 @@ function moveThumbnailDrag(event: PointerEvent) {
     const thumbnail = pendingDrag.target.querySelector('img')
     const size = board.value?.getImageWorldSize(thumbnail?.naturalWidth, thumbnail?.naturalHeight)
     if (!size) return
-    thumbnailDrag.value = { src: thumbnail?.naturalWidth ? pendingDrag.image.thumbnailSrc : pendingDrag.image.src, x: event.clientX, y: event.clientY, ...size }
+    const sizeKnown = !!thumbnail && thumbnail.naturalWidth > 0 && thumbnail.naturalHeight > 0
+    thumbnailDrag.value = { src: sizeKnown ? pendingDrag.image.thumbnailSrc : pendingDrag.image.src, x: event.clientX, y: event.clientY, ...size, sizeKnown }
   } else {
     thumbnailDrag.value.x = event.clientX
     thumbnailDrag.value.y = event.clientY
@@ -45,8 +46,9 @@ function moveThumbnailDrag(event: PointerEvent) {
 function previewLoaded(event: Event) {
   if (!pendingDrag || !thumbnailDrag.value || event.target !== dragPreviewImage.value) return
   const image = event.target as HTMLImageElement
+  if (image.naturalWidth <= 0 || image.naturalHeight <= 0) return
   const size = board.value?.getImageWorldSize(image.naturalWidth, image.naturalHeight)
-  if (size) Object.assign(thumbnailDrag.value, size)
+  if (size) Object.assign(thumbnailDrag.value, size, { sizeKnown: true })
 }
 function finishThumbnailDrag(event: PointerEvent) {
   if (!pendingDrag || pendingDrag.pointerId !== event.pointerId) return
@@ -54,7 +56,8 @@ function finishThumbnailDrag(event: PointerEvent) {
     event.preventDefault()
     thumbnailDrag.value.x = event.clientX
     thumbnailDrag.value.y = event.clientY
-    board.value?.addImageAt(pendingDrag.image, event.clientX, event.clientY)
+    const preview = thumbnailDrag.value.sizeKnown ? { width: thumbnailDrag.value.width, height: thumbnailDrag.value.height } : undefined
+    board.value?.addImageAt(pendingDrag.image, event.clientX, event.clientY, preview)
   }
   releaseThumbnailPointer()
   thumbnailDrag.value = null
