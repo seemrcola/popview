@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Focus, Minus, Plus, Scan, Trash2 } from 'lucide-vue-next'
 
 import type { ImageSource } from '../types/media'
@@ -147,12 +147,17 @@ function scaleImage(factor: number) {
   item.width = width
   item.height = height
 }
-function removeSelected() {
+async function removeSelected() {
   if (!selected.value) return
+  const index = items.value.findIndex(item => item.id === selectedId.value)
   notice.value = `已从画板移除 ${selected.value.name}，原文件未删除`
-  items.value = items.value.filter(item => item.id !== selectedId.value)
-  selectedId.value = null
-  stage.value?.focus({ preventScroll: true })
+  items.value.splice(index, 1)
+  const next = items.value[index] ?? items.value[index - 1]
+  if (next) activate(next)
+  else selectedId.value = null
+  await nextTick()
+  if (selected.value) stage.value?.querySelector<HTMLElement>('.board-image.selected')?.focus({ preventScroll: true })
+  else stage.value?.blur()
 }
 function startGesture(event: PointerEvent, type: Gesture['type'], item?: BoardImage) {
   if (gesture || (event.button !== 0 && event.button !== 1)) return
@@ -266,7 +271,7 @@ onBeforeUnmount(() => {
     <div class="board-workspace">
     <div ref="stage" class="board-stage" :class="{ panning: spaceHeld, interacting, 'drop-over': dropOver }" tabindex="0" aria-label="画板。拖动图片移动，右下角缩放；拖动空白处平移，滚轮缩放视野。" @pointerdown="startGesture($event, 'pan')" @pointermove="moveGesture" @pointerup="endGesture" @pointercancel="endGesture" @lostpointercapture="endGesture" @wheel.prevent="wheel">
       <div class="board-world" :style="worldStyle">
-        <div v-for="item in items" :key="item.id" class="board-image" :data-image-id="item.id" :class="{ selected: item.id === selectedId, failed: item.failed }" :style="{ left: `${item.x}px`, top: `${item.y}px`, width: `${item.width}px`, height: `${item.height}px`, zIndex: item.layer, transform: item.dragOffsetX === undefined || item.dragOffsetY === undefined ? undefined : `translate(${item.dragOffsetX}px, ${item.dragOffsetY}px)`, '--board-outline-width': `${1.5 / camera.zoom}px` }" @pointerdown.stop="startGesture($event, 'move', item)">
+        <div v-for="item in items" :key="item.id" class="board-image" tabindex="-1" :data-image-id="item.id" :class="{ selected: item.id === selectedId, failed: item.failed }" :style="{ left: `${item.x}px`, top: `${item.y}px`, width: `${item.width}px`, height: `${item.height}px`, zIndex: item.layer, transform: item.dragOffsetX === undefined || item.dragOffsetY === undefined ? undefined : `translate(${item.dragOffsetX}px, ${item.dragOffsetY}px)`, '--board-outline-width': `${1.5 / camera.zoom}px` }" @pointerdown.stop="startGesture($event, 'move', item)">
           <img :src="item.src" :alt="item.name" :draggable="false" v-show="item.ready" @load="loaded(item, $event)" @error="imageFailed(item)" />
           <span v-if="!item.ready" class="board-image-status">{{ item.failed ? '无法显示此图片' : '加载中…' }}</span>
           <template v-if="item.id === selectedId">
@@ -308,8 +313,9 @@ button:focus-visible { outline: 2px solid var(--viewer-accent); outline-offset: 
 .board-stage:focus-visible { outline: 1px solid var(--viewer-accent); outline-offset: -1px; }
 .board-stage.interacting, .board-stage.panning .board-image { cursor: grabbing; }
 .board-stage.drop-over { box-shadow: inset 0 0 0 2px var(--viewer-accent); }
-.board-world { position: absolute; top: 0; left: 0; width: 0; height: 0; transform-origin: 0 0; }
-.board-image { position: absolute; cursor: move; background: var(--viewer-raised); box-shadow: 0 0 0 var(--board-outline-width, 0px) transparent; }
+/* Keep a nonzero paint area so WKWebView clears overflowing labels and handles on removal. */
+.board-world { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform-origin: 0 0; }
+.board-image { position: absolute; cursor: move; outline: none; background: var(--viewer-raised); box-shadow: 0 0 0 var(--board-outline-width, 0px) transparent; }
 .board-image.selected { box-shadow: 0 0 0 var(--board-outline-width) var(--viewer-accent); }
 .board-image img { display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; pointer-events: none; }
 .board-image-status { display: grid; place-items: center; height: 100%; font-size: 12px; color: var(--viewer-muted); }

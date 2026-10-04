@@ -26,6 +26,69 @@ function placement(element: Element) {
 }
 
 describe('board membership and selection', () => {
+  it.each([[0, 1], [1, 2], [2, 1]])('focuses the adjacent image after removing image %s from the toolbar', async (removed, successor) => {
+    const wrapper = await setup()
+    const thumbnails = wrapper.findAll('.board-thumbnail')
+    await thumbnails[1].trigger('click')
+    await thumbnails[2].trigger('click')
+    await thumbnails[removed].trigger('click')
+    await wrapper.get('.board-stage').trigger('wheel', { deltaY: -100, clientX: 500, clientY: 380 })
+    const camera = wrapper.get('.board-world').attributes('style')
+    const remaining = wrapper.findAll('.board-image')[successor].element as HTMLElement
+    const geometry = placement(remaining)
+    const layer = Number(remaining.style.zIndex)
+    const stageFocus = vi.spyOn(wrapper.get('.board-stage').element as HTMLElement, 'focus')
+    const remove = wrapper.get('[aria-label="移出画板"]')
+    ;(remove.element as HTMLElement).focus()
+    await remove.trigger('click')
+    await nextTick()
+    expect(wrapper.findAll('.board-image')).toHaveLength(2)
+    expect(wrapper.get('.board-image.selected').element).toBe(remaining)
+    expect(document.activeElement).toBe(remaining)
+    expect(thumbnails[successor].attributes('aria-current')).toBe('true')
+    expect(placement(remaining)).toEqual(geometry)
+    expect(Number(remaining.style.zIndex)).toBeGreaterThan(layer)
+    expect(wrapper.get('.board-world').attributes('style')).toBe(camera)
+    expect(stageFocus).not.toHaveBeenCalled()
+  })
+
+  it('supports consecutive keyboard deletions and leaves the empty board unfocused', async () => {
+    const wrapper = await setup()
+    const thumbnails = wrapper.findAll('.board-thumbnail')
+    await thumbnails[1].trigger('click')
+    await thumbnails[2].trigger('click')
+    await thumbnails[0].trigger('click')
+    const stage = wrapper.get('.board-stage').element as HTMLElement
+    expect(document.activeElement).toBe(stage)
+    const stageFocus = vi.spyOn(stage, 'focus')
+    for (const image of images.slice(1)) {
+      document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }))
+      await nextTick()
+      await nextTick()
+      expect(wrapper.get('.board-image.selected img').attributes('src')).toBe(image.src)
+      expect(document.activeElement).toBe(wrapper.get('.board-image.selected').element)
+    }
+    document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }))
+    await nextTick()
+    await nextTick()
+    expect(wrapper.find('.board-image').exists()).toBe(false)
+    expect(wrapper.find('.board-image-controls').exists()).toBe(false)
+    expect(wrapper.find('.board-thumbnail.selected').exists()).toBe(false)
+    expect(document.activeElement).not.toBe(stage)
+    expect(stageFocus).not.toHaveBeenCalled()
+  })
+
+  it('blurs the stage when its last image is deleted by keyboard', async () => {
+    const wrapper = await setup()
+    const stage = wrapper.get('.board-stage').element as HTMLElement
+    expect(document.activeElement).toBe(stage)
+    document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }))
+    await nextTick()
+    await nextTick()
+    expect(wrapper.find('.board-image').exists()).toBe(false)
+    expect(document.activeElement).not.toBe(stage)
+  })
+
   it('keeps every board member highlighted after deselection and clears it on removal', async () => {
     const wrapper = await setup()
     const thumbnails = wrapper.findAll('.board-thumbnail')
