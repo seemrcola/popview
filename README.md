@@ -2,6 +2,12 @@
 
 PopView 是一款本地图片查看器，用来浏览电脑中的图片、查看细节，以及把多张图片放在一起对比。选择一个文件夹，就可以开始使用。
 
+## 平台支持
+
+目前开发和测试均在 **macOS** 上完成，现阶段仅支持 macOS。Windows 尚未进行兼容性测试，后续会在 Windows 上测试并修复兼容性问题，再确认支持范围。
+
+JPEG、PNG、GIF、WebP、BMP 使用内置解码器生成缩略图；HEIC/HEIF 和 AVIF 在 macOS 上使用系统 ImageIO 生成缩略图，实际支持取决于系统版本和解码能力。
+
 ## 代码结构
 
 - `src/App.vue` 负责页面组装和跨区域协调，不承载目录扫描或图片预览的内部状态。
@@ -9,6 +15,7 @@ PopView 是一款本地图片查看器，用来浏览电脑中的图片、查看
 - `src/composables/` 负责可复用的状态流程，例如目录浏览、文件夹缩略图请求、图片搜索和动效生命周期。
 - `src/services/` 是外部边界：`media.ts` 对接 Tauri，`errors.ts` 统一错误信息和用户提示。
 - `src/types/` 保存前后端共享的数据模型；`src-tauri/src/` 负责目录访问、媒体协议和 macOS 窗口行为。
+- `src-tauri/src/thumbnail_service.rs` 负责缩略图解码、方向修正和 PNG 输出；文件授权、请求调度和磁盘缓存由 `media.rs` 负责。
 
 修改目录扫描或媒体读取时，优先更新对应 service 和 composable；修改展示行为时，保持状态留在组件或 composable 内，避免把平台调用放进模板组件。
 
