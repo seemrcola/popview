@@ -39,6 +39,12 @@ function rectangle(element: Element) {
   return { x: parseFloat(style.left), y: parseFloat(style.top), width: parseFloat(style.width), height: parseFloat(style.height) }
 }
 
+function displayedCenter(element: Element) {
+  const rect = rectangle(element)
+  const [deltaX = 0, deltaY = 0] = (element as HTMLElement).style.transform.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? []
+  return { x: rect.x + deltaX + rect.width / 2, y: rect.y + deltaY + rect.height / 2 }
+}
+
 async function zoomBy(stage: ReturnType<typeof setup>['stage'], factor: number) {
   let remaining = -Math.log(factor) / .002
   while (Math.abs(remaining) > .00001) {
@@ -315,6 +321,61 @@ describe('dragging thumbnails onto the board', () => {
     await original.trigger('load')
     await flushPromises()
     expect(rectangle(wrapper.get('.board-image').element)).toEqual(placement)
+  })
+
+  it.each([
+    [.5, 400, 800, 'before-move', 'pointerup'],
+    [2, 800, 400, 'before-move', 'pointerup'],
+    [.5, 800, 400, 'during-move', 'pointerup'],
+    [2, 400, 800, 'during-move', 'pointerup'],
+    [1, 400, 800, 'during-move', 'pointercancel'],
+    [1, 800, 400, 'during-move', 'blur'],
+    [1, 400, 800, 'after-release', 'pointerup'],
+  ] as const)('preserves the dragged center at zoom %s for %sx%s decoding %s and ending via %s', async (zoom, width, height, timing, ending) => {
+    const { wrapper, thumbnail, stage } = setup(0, 0)
+    await zoomBy(stage, zoom)
+    await thumbnail.trigger('click', { detail: 1 })
+    const item = wrapper.get('.board-image')
+    const center = displayedCenter(item.element)
+    const original = item.get('img')
+    naturalSize(original.element, width, height)
+    const finishOriginal = deferredDecode()
+    await original.trigger('load')
+    await item.trigger('pointerdown', { ...pointer, clientX: 500, clientY: 380 })
+
+    const expectCenter = (deltaX: number, deltaY: number) => {
+      const displayed = displayedCenter(item.element)
+      expect(displayed.x).toBeCloseTo(center.x + deltaX / zoom)
+      expect(displayed.y).toBeCloseTo(center.y + deltaY / zoom)
+    }
+    if (timing === 'before-move') {
+      finishOriginal()
+      await flushPromises()
+      expectCenter(0, 0)
+    }
+    await stage.trigger('pointermove', { ...pointer, clientX: 560, clientY: 340 })
+    expectCenter(60, -40)
+    if (timing === 'during-move') {
+      finishOriginal()
+      await flushPromises()
+      expectCenter(60, -40)
+    }
+    await stage.trigger('pointermove', { ...pointer, clientX: 590, clientY: 320 })
+    expectCenter(90, -60)
+    if (ending === 'blur') window.dispatchEvent(new Event('blur'))
+    else await stage.trigger(ending, pointer)
+    await flushPromises()
+    expectCenter(90, -60)
+    expect((item.element as HTMLElement).style.transform).toBe('')
+    expect(stage.element.hasPointerCapture(pointer.pointerId)).toBe(false)
+    if (timing === 'after-release') {
+      finishOriginal()
+      await flushPromises()
+      expectCenter(90, -60)
+    }
+    const placed = rectangle(item.element)
+    expect(placed.width / placed.height).toBeCloseTo(width / height)
+    expect(wrapper.find('.board-image-status').exists()).toBe(false)
   })
 
   it('uses the original source when adding by click', async () => {

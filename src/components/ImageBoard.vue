@@ -5,7 +5,7 @@ import { Focus, Minus, Plus, Scan, Trash2 } from 'lucide-vue-next'
 import type { ImageSource } from '../types/media'
 
 type PlacementPreview = { width: number; height: number }
-type BoardImage = ImageSource & { id: number; x: number; y: number; width: number; height: number; ready: boolean; failed: boolean; layer: number; fixedSize: boolean; dragX?: number; dragY?: number }
+type BoardImage = ImageSource & { id: number; x: number; y: number; width: number; height: number; ready: boolean; failed: boolean; layer: number; fixedSize: boolean; dragOffsetX?: number; dragOffsetY?: number }
 type Gesture = { type: 'pan' | 'move' | 'resize'; pointerId: number; clientX: number; clientY: number; x: number; y: number; width: number; height: number; item?: BoardImage }
 const props = defineProps<{ active: boolean; dragPoint: { x: number; y: number } | null }>()
 const stage = ref<HTMLElement>()
@@ -162,7 +162,7 @@ function startGesture(event: PointerEvent, type: Gesture['type'], item?: BoardIm
   const pan = type === 'pan' || spaceHeld.value || event.button === 1
   if (item && !pan) activate(item)
   else if (type === 'pan' && !spaceHeld.value && event.button === 0) selectedId.value = null
-  gesture = { type: pan ? 'pan' : type, pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, x: pan ? camera.value.x : item!.x, y: pan ? camera.value.y : item!.y, width: item?.width ?? 0, height: item?.height ?? 0, item }
+  gesture = { type: pan ? 'pan' : type, pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, x: camera.value.x, y: camera.value.y, width: item?.width ?? 0, height: item?.height ?? 0, item }
   interacting.value = true
   stage.value?.setPointerCapture(event.pointerId)
 }
@@ -176,8 +176,8 @@ function moveGesture(event: PointerEvent) {
   } else if (gesture.item) {
     const item = gesture.item
     if (gesture.type === 'move') {
-      item.dragX = gesture.x + deltaX / camera.value.zoom
-      item.dragY = gesture.y + deltaY / camera.value.zoom
+      item.dragOffsetX = deltaX / camera.value.zoom
+      item.dragOffsetY = deltaY / camera.value.zoom
     } else {
       const width = gesture.width + deltaX / camera.value.zoom
       const height = gesture.height + deltaY / camera.value.zoom
@@ -190,11 +190,11 @@ function moveGesture(event: PointerEvent) {
 }
 function endGesture(event?: PointerEvent) {
   if (event && gesture && event.pointerId !== gesture.pointerId) return
-  if (gesture?.type === 'move' && gesture.item?.dragX !== undefined && gesture.item.dragY !== undefined) {
-    gesture.item.x = gesture.item.dragX
-    gesture.item.y = gesture.item.dragY
-    gesture.item.dragX = undefined
-    gesture.item.dragY = undefined
+  if (gesture?.type === 'move' && gesture.item?.dragOffsetX !== undefined && gesture.item.dragOffsetY !== undefined) {
+    gesture.item.x += gesture.item.dragOffsetX
+    gesture.item.y += gesture.item.dragOffsetY
+    gesture.item.dragOffsetX = undefined
+    gesture.item.dragOffsetY = undefined
   }
   const pointerId = gesture?.pointerId
   gesture = undefined
@@ -266,7 +266,7 @@ onBeforeUnmount(() => {
     <div class="board-workspace">
     <div ref="stage" class="board-stage" :class="{ panning: spaceHeld, interacting, 'drop-over': dropOver }" tabindex="0" aria-label="画板。拖动图片移动，右下角缩放；拖动空白处平移，滚轮缩放视野。" @pointerdown="startGesture($event, 'pan')" @pointermove="moveGesture" @pointerup="endGesture" @pointercancel="endGesture" @lostpointercapture="endGesture" @wheel.prevent="wheel">
       <div class="board-world" :style="worldStyle">
-        <div v-for="item in items" :key="item.id" class="board-image" :data-image-id="item.id" :class="{ selected: item.id === selectedId, failed: item.failed }" :style="{ left: `${item.x}px`, top: `${item.y}px`, width: `${item.width}px`, height: `${item.height}px`, zIndex: item.layer, transform: item.dragX === undefined || item.dragY === undefined ? undefined : `translate(${item.dragX - item.x}px, ${item.dragY - item.y}px)`, '--board-outline-width': `${1.5 / camera.zoom}px` }" @pointerdown.stop="startGesture($event, 'move', item)">
+        <div v-for="item in items" :key="item.id" class="board-image" :data-image-id="item.id" :class="{ selected: item.id === selectedId, failed: item.failed }" :style="{ left: `${item.x}px`, top: `${item.y}px`, width: `${item.width}px`, height: `${item.height}px`, zIndex: item.layer, transform: item.dragOffsetX === undefined || item.dragOffsetY === undefined ? undefined : `translate(${item.dragOffsetX}px, ${item.dragOffsetY}px)`, '--board-outline-width': `${1.5 / camera.zoom}px` }" @pointerdown.stop="startGesture($event, 'move', item)">
           <img :src="item.src" :alt="item.name" :draggable="false" v-show="item.ready" @load="loaded(item, $event)" @error="imageFailed(item)" />
           <span v-if="!item.ready" class="board-image-status">{{ item.failed ? '无法显示此图片' : '加载中…' }}</span>
           <template v-if="item.id === selectedId">
