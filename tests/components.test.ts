@@ -132,10 +132,80 @@ describe('collection', () => {
 })
 
 describe('preview components', () => {
+  function naturalSize(element: Element, width: number, height: number) {
+    Object.defineProperties(element, {
+      naturalWidth: { configurable: true, value: width },
+      naturalHeight: { configurable: true, value: height },
+    })
+  }
+
   it('supports keyboard navigation in the single-image viewer', async () => {
     const wrapper = mount(SingleImageViewer, { props: { images: images(2), initialPath: '/photos/0.png' } })
     await wrapper.get('.viewer-canvas').trigger('keydown', { key: 'ArrowRight' })
     expect(wrapper.get('.viewer-canvas img').attributes('src')).toBe('original-1')
+  })
+
+  it('ignores an old image load while the current image is loading or ready', async () => {
+    const wrapper = mount(SingleImageViewer, { props: { images: images(2), initialPath: '/photos/0.png' } })
+    const oldImage = wrapper.get('.viewer-canvas img')
+    naturalSize(oldImage.element, 3200, 1800)
+    await wrapper.get('[aria-label="下一张"]').trigger('click')
+    const currentImage = wrapper.get('.viewer-canvas img')
+    await oldImage.trigger('load')
+    expect(wrapper.get('[role="status"]').text()).toBe('加载中…')
+    expect((currentImage.element as HTMLImageElement).style.width).toBe('0px')
+    expect((currentImage.element as HTMLImageElement).style.display).toBe('none')
+
+    naturalSize(currentImage.element, 1200, 800)
+    await currentImage.trigger('load')
+    await oldImage.trigger('load')
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    expect((currentImage.element as HTMLImageElement).style.width).toBe('1200px')
+    expect((currentImage.element as HTMLImageElement).style.height).toBe('800px')
+    expect((currentImage.element as HTMLImageElement).style.display).not.toBe('none')
+  })
+
+  it('ignores an old image error but still reports errors from the current image', async () => {
+    const wrapper = mount(SingleImageViewer, { props: { images: images(2), initialPath: '/photos/0.png' } })
+    const oldImage = wrapper.get('.viewer-canvas img')
+    await wrapper.get('[aria-label="下一张"]').trigger('click')
+    const currentImage = wrapper.get('.viewer-canvas img')
+    await oldImage.trigger('error')
+    expect(wrapper.get('[role="status"]').text()).toBe('加载中…')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+
+    naturalSize(currentImage.element, 1200, 800)
+    await currentImage.trigger('load')
+    await oldImage.trigger('error')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect((currentImage.element as HTMLImageElement).style.display).not.toBe('none')
+    expect(wrapper.get('[aria-label="放大"]').attributes('disabled')).toBeUndefined()
+
+    await currentImage.trigger('error')
+    expect(wrapper.get('[role="alert"]').text()).toBe('无法显示此图片')
+    expect((currentImage.element as HTMLImageElement).style.display).toBe('none')
+    expect(wrapper.get('[aria-label="放大"]').attributes('disabled')).toBeDefined()
+  })
+
+  it.each(['load', 'error'])('ignores the first A image %s after switching A → B → A', async event => {
+    const wrapper = mount(SingleImageViewer, { props: { images: images(2), initialPath: '/photos/0.png' } })
+    const firstImage = wrapper.get('.viewer-canvas img')
+    naturalSize(firstImage.element, 3200, 1800)
+    await wrapper.get('[aria-label="下一张"]').trigger('click')
+    await wrapper.get('[aria-label="上一张"]').trigger('click')
+    const currentImage = wrapper.get('.viewer-canvas img')
+    expect(currentImage.attributes('src')).toBe(firstImage.attributes('src'))
+    expect(currentImage.element).not.toBe(firstImage.element)
+
+    await firstImage.trigger(event)
+    expect(wrapper.get('[role="status"]').text()).toBe('加载中…')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect((currentImage.element as HTMLImageElement).style.width).toBe('0px')
+    naturalSize(currentImage.element, 1200, 800)
+    await currentImage.trigger('load')
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    expect((currentImage.element as HTMLImageElement).style.width).toBe('1200px')
+    expect((currentImage.element as HTMLImageElement).style.display).not.toBe('none')
   })
 
   it('virtualizes long thumbnail strips and reveals the selection', async () => {

@@ -10,6 +10,7 @@ import '../styles/viewer.css'
 const props = defineProps<{ images: ImageSource[]; initialPath: string }>()
 const emit = defineEmits<{ close: []; select: [image: ImageSource] }>()
 const canvas = ref<HTMLElement>()
+const currentImage = ref<HTMLImageElement>()
 const index = ref(Math.max(0, props.images.findIndex(image => image.path === props.initialPath)))
 const image = computed(() => props.images[index.value])
 const dimensions = ref({ width: 0, height: 0 })
@@ -46,7 +47,13 @@ watch(() => image.value?.path, () => {
 })
 function loaded(event: Event) {
   const element = event.target as HTMLImageElement
+  if (element !== currentImage.value) return
   dimensions.value = { width: element.naturalWidth, height: element.naturalHeight }
+  loading.value = false
+}
+function imageFailed(event: Event) {
+  if (event.target !== currentImage.value) return
+  failed.value = true
   loading.value = false
 }
 function toggleFit() {
@@ -123,7 +130,7 @@ onBeforeUnmount(() => { observer?.disconnect() })
         <slot name="close" />
       </div>
       <div ref="canvas" class="viewer-canvas" :class="{ dragging }" tabindex="0" aria-label="图片，左右方向键切换，加减键缩放" @wheel.prevent="wheel" @dblclick="toggleFit" @pointerdown="startPan" @pointermove="movePan" @pointerup="dragging = false" @pointercancel="dragging = false" @lostpointercapture="dragging = false">
-        <img v-if="image" :key="image.path" :src="image.src" :alt="image.name" :style="imageStyle" :draggable="false" v-show="!loading && !failed" @load="loaded" @error="failed = true; loading = false" />
+        <img v-if="image" ref="currentImage" :key="image.path" :src="image.src" :alt="image.name" :style="imageStyle" :draggable="false" v-show="!loading && !failed" @load="loaded" @error="imageFailed" />
         <span v-if="loading" class="viewer-message" role="status">加载中…</span>
         <span v-else-if="failed" class="viewer-message" role="alert">无法显示此图片</span>
       </div>
