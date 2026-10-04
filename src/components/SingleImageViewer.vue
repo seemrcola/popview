@@ -157,7 +157,7 @@ onBeforeUnmount(() => { observer?.disconnect() })
 .viewer-message { color: var(--viewer-muted); font-size: 14px; }
 .viewer-arrow { position: absolute; top: 50%; margin-top: -18px; background: var(--viewer-raised); border-color: var(--viewer-grid); }
 .previous { left: 16px; }.next { right: 16px; }
-.viewer-canvas:focus-visible { outline: 1px solid var(--viewer-accent); outline-offset: -1px; }
+.viewer-canvas:focus-visible { outline: none; }
 @media (max-width: 650px) {
   .viewer-info { max-width: calc(100% - 230px); }
   .viewer-info strong { font-size: 12px; }
