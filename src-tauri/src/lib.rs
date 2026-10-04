@@ -1,5 +1,6 @@
 mod directories;
 mod media;
+mod thumbnail_service;
 #[cfg(target_os = "macos")]
 mod window_chrome;
 

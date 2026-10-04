@@ -1,10 +1,11 @@
 use crate::directories::is_image;
-use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits};
+use crate::thumbnail_service;
+use image::ImageFormat;
 use percent_encoding::percent_decode_str;
 use sha2::{Digest, Sha256};
 use std::{
     fs,
-    io::{Cursor, Read},
+    io::Read,
     path::{Component, Path, PathBuf},
     sync::{atomic::AtomicBool, Arc, Mutex},
     time::UNIX_EPOCH,
@@ -142,28 +143,8 @@ fn thumbnail(path: &Path, cache: &Path) -> Result<Vec<u8>, String> {
     if let Ok(bytes) = fs::read(&target) {
         return Ok(bytes);
     }
-    let mut reader = ImageReader::open(path)
-        .map_err(|error| error.to_string())?
-        .with_guessed_format()
-        .map_err(|error| error.to_string())?;
-    let mut limits = Limits::default();
-    limits.max_image_width = Some(20000);
-    limits.max_image_height = Some(20000);
-    limits.max_alloc = Some(256 * 1024 * 1024);
-    reader.limits(limits);
-    let mut decoder = reader.into_decoder().map_err(|error| error.to_string())?;
-    let orientation = decoder.orientation().map_err(|error| error.to_string())?;
-    let mut image = DynamicImage::from_decoder(decoder).map_err(|error| error.to_string())?;
-    image.apply_orientation(orientation);
-    let mut bytes = Cursor::new(Vec::new());
-    image
-        .thumbnail(
-            THUMBNAIL_SIZE.min(image.width()),
-            THUMBNAIL_SIZE.min(image.height()),
-        )
-        .write_to(&mut bytes, ImageFormat::Png)
-        .map_err(|error| error.to_string())?;
-    let bytes = bytes.into_inner();
+    let bytes =
+        thumbnail_service::generate(path, THUMBNAIL_SIZE).map_err(|error| error.to_string())?;
     prune_cache(cache, bytes.len() as u64)?;
     if cache_path(path, cache)? != target {
         return Err("图片已变化，请重试".into());
@@ -271,7 +252,10 @@ pub fn serve(app: &AppHandle, request: Request<Vec<u8>>) -> Response<Vec<u8>> {
             .header("X-Content-Type-Options", "nosniff")
             .body(bytes)
             .unwrap(),
-        Err(_) => error_response(),
+        Err(error) => {
+            eprintln!("Unable to serve image: {error}");
+            error_response()
+        }
     }
 }
 
@@ -413,6 +397,52 @@ mod tests {
             .unwrap();
         let (bytes, _) = read_media(&state, &cache, &request).unwrap();
         assert_eq!(image::load_from_memory(&bytes).unwrap().width(), 384);
+        state.commit_root(root).unwrap();
+        assert!(read_media(&state, &cache, &request).is_err());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_thumbnails_use_existing_media_authorization_and_cache() {
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path().canonicalize().unwrap();
+        let original = root.join("空 格.heic");
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/landscape.heic");
+        fs::copy(fixture, &original).unwrap();
+        let state = BrowserState::default();
+        let session = state.commit_root(root.clone()).unwrap();
+        let encoded = percent_encoding::utf8_percent_encode(
+            original.to_str().unwrap(),
+            percent_encoding::NON_ALPHANUMERIC,
+        );
+        let url = format!("media://localhost/{encoded}?session={session}");
+        let cache = root.join("cache");
+        let request = Request::builder().uri(&url).body(Vec::new()).unwrap();
+        let (bytes, mime) = read_media(&state, &cache, &request).unwrap();
+        assert_eq!(bytes, fs::read(&original).unwrap());
+        assert_eq!(mime, "image/heic");
+        let request = Request::builder()
+            .uri(format!("{url}&thumbnail=1"))
+            .body(Vec::new())
+            .unwrap();
+        let (first, mime) = read_media(&state, &cache, &request).unwrap();
+        assert_eq!(mime, "image/png");
+        let decoded = image::load_from_memory(&first).unwrap();
+        assert_eq!((decoded.width(), decoded.height()), (384, 192));
+        let key = cache_path(&original, &cache).unwrap();
+        let cached_modified = key.metadata().unwrap().modified().unwrap();
+        assert_eq!(read_media(&state, &cache, &request).unwrap().0, first);
+        assert_eq!(key.metadata().unwrap().modified().unwrap(), cached_modified);
+        let modified = original.metadata().unwrap().modified().unwrap();
+        fs::File::options()
+            .write(true)
+            .open(&original)
+            .unwrap()
+            .set_modified(modified + Duration::from_secs(1))
+            .unwrap();
+        assert_ne!(cache_path(&original, &cache).unwrap(), key);
+        read_media(&state, &cache, &request).unwrap();
+        assert_eq!(fs::read_dir(&cache).unwrap().count(), 2);
         state.commit_root(root).unwrap();
         assert!(read_media(&state, &cache, &request).is_err());
     }
